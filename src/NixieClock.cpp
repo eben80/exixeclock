@@ -21,14 +21,13 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
+// Section for configuring your time zones
 // Central European Time (Frankfurt, Paris)
 TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120}; // Central European Summer Time
 TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};   // Central European Standard Time
 Timezone CE(CEST, CET);
 
-char ssid[] = "Belkin";      //  your network SSID (name)
-char pass[] = "Fixui27d69!"; // your network password
-
+// NTP Server Section
 unsigned int localPort = 2390; // local port to listen for UDP packets
 
 /* Don't hardwire the IP address or we won't get the benefits of the pool.
@@ -46,12 +45,11 @@ WiFiUDP udp;
 
 WiFiClient client;
 
-// #define INTERVAL_MESSAGE1 3600000
-#define INTERVAL_MESSAGE1 600000
-#define INTERVAL_MESSAGE2 86400000
-// #define INTERVAL_MESSAGE2 15000
-// #define INTERVAL_MESSAGE3 11000
-// #define INTERVAL_MESSAGE4 13000
+// Interval definition for loop tasks
+#define INTERVAL1 600000   // Anti cathode poisoning
+#define INTERVAL2 86400000 // Regular NTP time sync
+// #define INTERVAL3 11000
+// #define INTERVAL4 13000
 
 unsigned long time_1 = 0;
 unsigned long time_2 = 0;
@@ -63,19 +61,19 @@ int cs1 = 15;
 int cs2 = 16;
 int cs3 = 5;
 int cs4 = 4;
-unsigned char offset = 2;
+
 unsigned char count;
 unsigned char digone;
 unsigned char digtwo;
 unsigned char digthree;
 unsigned char digfour;
+bool tickDot = true;
 
+// Declare tubes
 exixe my_tube1 = exixe(cs1);
 exixe my_tube2 = exixe(cs2);
 exixe my_tube3 = exixe(cs3);
 exixe my_tube4 = exixe(cs4);
-
-bool tickDot = true;
 
 // send an NTP request to the time server at the given address
 // unsigned long sendNTPpacket(IPAddress &address)
@@ -103,6 +101,7 @@ void sendNTPpacket(IPAddress &address)
   udp.endPacket();
 }
 
+// Future feature, get location & Time zone from IP
 void getLoc()
 {
   if (WL_CONNECTED)
@@ -142,6 +141,7 @@ void getLoc()
   }
 }
 
+// Anti cathode poisoning loop
 void antiDote()
 {
   while (count < 10)
@@ -218,6 +218,7 @@ void antiDote()
   delay(750);
 }
 
+// Function displaying time
 void displayCurrentTime()
 {
 
@@ -236,59 +237,58 @@ void displayCurrentTime()
 
   if (hour() > 19 && hour() < 24)
   {
-    Serial.println("Case 1");
     digtwo = hour() - 20;
   }
   else if (hour() < 20 && hour() > 9)
   {
-    Serial.println("Case 2");
+
     digtwo = hour() - 10;
   }
   else if (hour() < 10 && hour() >= 0)
   {
-    Serial.println("Case 3");
+
     digtwo = hour();
   }
 
   else
   {
-    Serial.println("Case 4");
+
     digtwo = hour();
   }
 
   if (minute() < 10)
   {
-    Serial.println("Case A");
+
     digthree = 0;
     digfour = minute();
   }
   else if (minute() > 9 && minute() < 20)
   {
-    Serial.println("Case B");
+
     digthree = 1;
     digfour = minute() - 10;
   }
   else if (minute() > 19 && minute() < 30)
   {
-    Serial.println("Case C");
+
     digthree = 2;
     digfour = minute() - 20;
   }
   else if (minute() > 29 && minute() < 40)
   {
-    Serial.println("Case D");
+
     digthree = 3;
     digfour = minute() - 30;
   }
   else if (minute() > 39 && minute() < 50)
   {
-    Serial.println("Case E");
+
     digthree = 4;
     digfour = minute() - 40;
   }
   else
   {
-    Serial.println("Case F");
+
     digthree = 5;
     digfour = minute() - 50;
   }
@@ -299,8 +299,9 @@ void displayCurrentTime()
   Serial.print(digfour);
   Serial.println();
 
+  // Change brightness according to time of day
   int brightness = 90;
-  // Serial.println(hour());
+
   if (hour() >= 18 || hour() < 6)
   {
     brightness = 30;
@@ -309,10 +310,10 @@ void displayCurrentTime()
   {
     brightness = 100;
   }
-  // Serial.println(brightness);
 
   my_tube1.show_digit(digone, brightness, 0);
   my_tube2.show_digit(digtwo, brightness, 0);
+  // Tick dot for seconds
   if (tickDot)
   {
     my_tube2.set_dots(0, 20);
@@ -329,6 +330,7 @@ void displayCurrentTime()
   delay(1000);
 }
 
+// Function for regular NTP time sync
 void syncTime()
 {
   if (WiFi.status() == WL_CONNECTED)
@@ -383,10 +385,9 @@ void syncTime()
     }
   }
 }
+
 void setup()
 {
-
-  // Serial.begin(74880);
   Serial.begin(115200);
   Serial.println();
   Serial.println();
@@ -402,7 +403,7 @@ void setup()
 
   //fetches ssid and pass from eeprom and tries to connect
   //if it does not connect it starts an access point with the specified name
-  //here  "AutoConnectAP"
+  //here  "AutoConnectNx"
   //and goes into a blocking loop awaiting configuration
   wifiManager.autoConnect("AutoConnectNx");
   //or use this for auto generated name ESP + ChipID
@@ -484,8 +485,10 @@ void setup()
   my_tube3.clear();
   my_tube4.clear();
 
+  // Future feature for geo-location based on IP
   // getLoc();
 
+  // NTP time sync initial run
   //get a random server from the pool
   WiFi.hostByName(ntpServerName, timeServerIP);
 
@@ -547,40 +550,39 @@ void setup()
     }
     Serial.println(epoch % 60); // print the second
   }
-  // wait ten seconds before asking for the time again
-  // delay(10000);
 }
 
 void loop()
 {
-  ArduinoOTA.handle();
-
-  if (millis() >= time_1 + INTERVAL_MESSAGE1)
+  ArduinoOTA.handle(); // OTA handler
+                       // Anti cathode poisoning task
+  if (millis() >= time_1 + INTERVAL1)
   {
-    time_1 += INTERVAL_MESSAGE1;
+    time_1 += INTERVAL1;
     antiDote();
   }
-
-  if (millis() >= time_2 + INTERVAL_MESSAGE2)
+  // Regular NTP time sync task
+  if (millis() >= time_2 + INTERVAL2)
   {
-    time_2 += INTERVAL_MESSAGE2;
+    time_2 += INTERVAL2;
     syncTime();
   }
 
-  // if (millis() >= time_3 + INTERVAL_MESSAGE3)
+  // if (millis() >= time_3 + INTERVAL3)
   // {
-  //   time_3 += INTERVAL_MESSAGE3;
+  //   time_3 += INTERVAL3;
   //   // print_time(time_3);
   //   // Serial.println("My name is Message the third.");
   // }
 
-  // if (millis() >= time_4 + INTERVAL_MESSAGE4)
+  // if (millis() >= time_4 + INTERVAL4)
   // {
-  //   time_4 += INTERVAL_MESSAGE4;
+  //   time_4 += INTERVAL4;
   //   // print_time(time_4);
   //   // Serial.println("Message four is in the house!");
   // }
 
+  // Configure tube LED colours here
   my_tube1.set_led(0, 0, 0); // purple;
   my_tube2.set_led(0, 0, 0); // yellow;
   my_tube3.set_led(0, 0, 0); // red
