@@ -46,8 +46,8 @@ WiFiUDP udp;
 WiFiClient client;
 
 // Interval definition for loop tasks
-#define INTERVAL1 600000   // Anti cathode poisoning
-#define INTERVAL2 86400000 // Regular NTP time sync
+#define INTERVAL1 1800000   //  Every 30 minutes Anti cathode poisoning
+#define INTERVAL2 86400000 // Every 24 hours NTP time sync
 // #define INTERVAL3 11000
 // #define INTERVAL4 13000
 
