@@ -46,7 +46,7 @@ WiFiUDP udp;
 WiFiClient client;
 
 // Interval definition for loop tasks
-#define INTERVAL1 1800000   //  Every 30 minutes Anti cathode poisoning
+#define INTERVAL1 1800000  //  Every 30 minutes Anti cathode poisoning
 #define INTERVAL2 86400000 // Every 24 hours NTP time sync
 // #define INTERVAL3 11000
 // #define INTERVAL4 13000
@@ -301,10 +301,19 @@ void displayCurrentTime()
 
   // Change brightness according to time of day
   int brightness = 90;
+  int secondTubeBright = 90;
 
   if (hour() >= 18 || hour() < 6)
   {
     brightness = 30;
+    if (tickDot)
+    {
+      secondTubeBright = 35;
+    }
+    else
+    {
+      secondTubeBright = 30;
+    }
   }
   else
   {
@@ -312,7 +321,7 @@ void displayCurrentTime()
   }
 
   my_tube1.show_digit(digone, brightness, 0);
-  my_tube2.show_digit(digtwo, brightness, 0);
+  my_tube2.show_digit(digtwo, secondTubeBright, 0);
   // Tick dot for seconds
   if (tickDot)
   {
