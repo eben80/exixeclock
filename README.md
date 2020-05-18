@@ -29,4 +29,5 @@ Hardware:
 
 Using the [Sunrise Sunset API](https://sunrise-sunset.org/api)
 
-More updates with photos shortly.
+Schematic:
+![Exixeclock Schematic](https://github.com/eben80/exixeclock/blob/master/circuit/Schematic_ExixeClock.jpg)
