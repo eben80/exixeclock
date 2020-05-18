@@ -1,6 +1,8 @@
 # exixeclock
 ESP8266-powered, WiFi enabled, automatic time syncing, OTA updatable 4 digit Nixie Clock based on [Exixe driver modules](https://github.com/dekuNukem/exixe) from @dekuNukem
 
+[![Youtube video](https://img.youtube.com/vi/zlQQ1anih0Y/0.jpg)](https://www.youtube.com/watch?v=zlQQ1anih0Y)
+
 Has the following features:
 *   WifiManager autoconfiguration
 *   Automatic daily NTP online time sync
