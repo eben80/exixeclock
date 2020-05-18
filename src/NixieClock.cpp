@@ -540,7 +540,7 @@ void displayCurrentTime()
   }
   my_tube3.show_digit(digthree, brightness, 0);
   my_tube4.show_digit(digfour, brightness, 0);
-  Serial.println(darkTheme);
+  // Serial.println(darkTheme);
 }
 
 // Function for regular NTP time sync
@@ -769,26 +769,26 @@ void setup()
 void loop()
 {
   ArduinoOTA.handle(); // OTA handler
-                       // Anti cathode poisoning task
-  if (millis() >= time_1 + INTERVAL1)
+                       
+  if (millis() >= time_1 + INTERVAL1) // Anti cathode poisoning task
   {
     time_1 += INTERVAL1;
     antiDote();
   }
-  // Regular NTP time sync task
-  if (millis() >= time_2 + INTERVAL2)
+  
+  if (millis() >= time_2 + INTERVAL2) // Regular NTP time sync task
   {
     time_2 += INTERVAL2;
     syncTime();
   }
 
-  if (millis() >= time_3 + INTERVAL3)
+  if (millis() >= time_3 + INTERVAL3) // Display time
   {
     time_3 += INTERVAL3;
     displayCurrentTime();
   }
 
-  if (millis() >= time_4 + INTERVAL4)
+  if (millis() >= time_4 + INTERVAL4) // Display date
   {
     time_4 += INTERVAL4;
     displayDate();
