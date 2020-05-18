@@ -5,7 +5,7 @@
   library docs:
   https://github.com/dekuNukem/exixe/tree/master/arduino_library
 
-  Demo 4: Loop digits on two tubes
+
 */
 #include <Arduino.h>
 #include "exixe.h"
@@ -21,11 +21,13 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
+#include <ArduinoJson.h> //For sunrise/sunset api
+
 // Section for configuring your time zones
-// Central European Time (Frankfurt, Paris)
+// Central European Time (Frankfurt, Paris) - Configure yours here.
 TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120}; // Central European Summer Time
 TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};   // Central European Standard Time
-Timezone CE(CEST, CET);
+Timezone ChozenZone(CEST, CET);
 
 // NTP Server Section
 unsigned int localPort = 2390; // local port to listen for UDP packets
@@ -48,13 +50,13 @@ WiFiClient client;
 // Interval definition for loop tasks
 #define INTERVAL1 1800000  //  Every 30 minutes Anti cathode poisoning
 #define INTERVAL2 86400000 // Every 24 hours NTP time sync
-// #define INTERVAL3 11000
-// #define INTERVAL4 13000
+#define INTERVAL3 1000     // Update time display every second
+#define INTERVAL4 30000    // Display date
 
 unsigned long time_1 = 0;
 unsigned long time_2 = 0;
-// unsigned long time_3 = 0;
-// unsigned long time_4 = 0;
+unsigned long time_3 = 0;
+unsigned long time_4 = 0;
 
 // change those to the cs pins you're using
 int cs1 = 15;
@@ -68,6 +70,20 @@ unsigned char digtwo;
 unsigned char digthree;
 unsigned char digfour;
 bool tickDot = true;
+int brightness = 90;
+int secondTubeBright = 90;
+float latitude = 49.052243;  // Configure your latitude here
+float longitude = 21.281473; // Configure your longitude here
+String JsonStatus = "";
+String CTBegin = "";
+String CTEnds = "";
+long brightTime = 0;
+long darkTime = 0;
+bool darkTheme = false;
+bool dynamicBright = true; // Use web-sourced twilight times or static times.
+
+String lightStart = "6:00:00"; // When to start normal brightness
+String darkStart = "18:00:00"; // When to start reduced brightness
 
 // Declare tubes
 exixe my_tube1 = exixe(cs1);
@@ -134,10 +150,116 @@ void getLoc()
         Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
       }
     }
+    http.end();
   }
   else
   {
     Serial.println("Not Connected");
+  }
+}
+
+long processTwilight(String twilightTime, bool isPM) //Takes time from twilight API JSON and returns UTC epoch
+{
+  int firstColon = twilightTime.indexOf(":");
+  int secondColon = twilightTime.indexOf(":", firstColon + 1);
+  int CTS = twilightTime.substring(secondColon + 1, secondColon + 3).toInt();
+  int CTM = twilightTime.substring(firstColon + 1, firstColon + 3).toInt();
+  int CTH = twilightTime.substring(0, firstColon).toInt();
+  if (isPM)
+  {
+    CTH = CTH + 12;
+  }
+
+  struct tm t;
+  time_t t_of_day;
+
+  t.tm_year = year() - 1900; // Year - 1900
+  t.tm_mon = month() - 1;    // Month, where 0 = jan
+  t.tm_mday = day();         // Day of the month
+  t.tm_hour = CTH;
+  t.tm_min = CTM;
+  t.tm_sec = CTS;
+  t.tm_isdst = 0; // Is DST on? 1 = yes, 0 = no, -1 = unknown
+  t_of_day = mktime(&t);
+
+  // Serial.printf("seconds since the Epoch: %ld\n", (long)t_of_day);
+  // Serial.println(now());
+
+  return t_of_day;
+}
+
+void getSunrise() // Get sunrise/sunset from location
+{
+  if (dynamicBright)
+  {
+    if (WL_CONNECTED)
+    {
+      HTTPClient http;
+      http.useHTTP10(true);
+      Serial.print("[HTTP] begin...\n");
+
+      String urlBuf;
+      urlBuf += F("http://api.sunrise-sunset.org/json?lat=");
+      urlBuf += String(latitude, 6);
+      urlBuf += F("&lng=");
+      urlBuf += String(longitude, 6);
+      urlBuf += F("&date=today");
+
+      if (http.begin(client, urlBuf))
+      { // HTTP
+
+        Serial.print("[HTTP] GET " + urlBuf + "\n");
+        // start connection and send HTTP header
+        int httpCode = http.GET();
+
+        // httpCode will be negative on error
+        if (httpCode > 0)
+        {
+          // HTTP header has been send and Server response header has been handled
+          Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+
+          // file found at server
+          if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
+          {
+
+            // Parse response
+            DynamicJsonDocument doc(2048);
+            deserializeJson(doc, http.getStream());
+            JsonStatus = doc["status"].as<String>();
+            if (JsonStatus == "OK")
+            {
+              CTBegin = doc["results"]["civil_twilight_begin"].as<String>();
+              CTEnds = doc["results"]["civil_twilight_end"].as<String>();
+              Serial.println("Twilight begins: " + CTBegin);
+              Serial.println("Twilight ends: " + CTEnds);
+
+              brightTime = processTwilight(CTBegin, false);
+              darkTime = processTwilight(CTEnds, true);
+            }
+          }
+        }
+        else
+        {
+          Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+          Serial.println("HTTP Error Using static brightness times.");
+          brightTime = processTwilight(lightStart, false);
+          darkTime = processTwilight(darkStart, true);
+        }
+      }
+      http.end();
+    }
+    else
+    {
+      Serial.println("Not Connected Using static brightness times.");
+      brightTime = processTwilight(lightStart, false);
+      darkTime = processTwilight(darkStart, true);
+    }
+  }
+  else
+  {
+    Serial.println("Using static brightness times.");
+    brightTime = processTwilight(lightStart, false);
+    darkTime = processTwilight(darkStart, true);
   }
 }
 
@@ -218,9 +340,98 @@ void antiDote()
   delay(750);
 }
 
+void displayDate()
+{
+
+    // Reset dots
+  my_tube1.set_dots(0, 0);
+  my_tube2.set_dots(0, 0);
+  my_tube3.set_dots(0, 0);
+  my_tube4.set_dots(0, 0);
+
+  // Configure tube LED colours here
+  my_tube1.set_led(255, 0, 0); // purple;
+  my_tube2.set_led(255, 0, 0); // yellow;
+  my_tube3.set_led(0, 0, 255); // red
+  my_tube4.set_led(0, 0, 255); // blue
+
+  // Set month
+  my_tube1.set_dots(brightness, 0);
+  if (month() < 10)
+  {
+    my_tube1.show_digit(0, brightness, 0);
+    my_tube2.show_digit(month(), brightness, 0);
+  }
+  else
+  {
+    my_tube1.show_digit(1, brightness, 0);
+    my_tube2.show_digit(month() - 10, brightness, 0);
+  }
+  my_tube2.set_dots(0, brightness);
+
+  // Set day
+  my_tube3.set_dots(brightness, 0);
+  if (day() > 29)
+  {
+    my_tube3.show_digit(3, brightness, 0);
+    my_tube4.show_digit(day() - 30, brightness, 0);
+  }
+  else if (day() > 19)
+  {
+    my_tube3.show_digit(2, brightness, 0);
+    my_tube4.show_digit(day() - 20, brightness, 0);
+  }
+  else if (day() > 9)
+  {
+    my_tube3.show_digit(1, brightness, 0);
+    my_tube4.show_digit(day() - 10, brightness, 0);
+  }
+  else
+  {
+    my_tube3.show_digit(0, brightness, 0);
+    my_tube4.show_digit(day(), brightness, 0);
+  }
+  my_tube4.set_dots(0, brightness);
+  delay(2500);
+  // Reset dots
+  my_tube1.set_dots(0, 0);
+  my_tube2.set_dots(0, 0);
+  my_tube3.set_dots(0, 0);
+  my_tube4.set_dots(0, 0);
+
+    // Configure tube LED colours here
+  my_tube1.set_led(255, 255, 255); // purple;
+  my_tube2.set_led(255, 255, 255); // yellow;
+  my_tube3.set_led(255, 255, 255); // red
+  my_tube4.set_led(255, 255, 255); // blue
+  // Set year
+  int ones = (year() % 10);
+  int tens = ((year() / 10) % 10);
+  int hundreds = ((year() / 100) % 10);
+  int thousands = (year() / 1000);
+
+  my_tube1.set_dots(brightness, 0);
+
+  my_tube1.show_digit(thousands, brightness, 0);
+  my_tube2.show_digit(hundreds, brightness, 0);
+  my_tube3.show_digit(tens, brightness, 0);
+  my_tube4.show_digit(ones, brightness, 0);
+  my_tube4.set_dots(0, brightness);
+  delay(2500);
+  // Reset dots
+  my_tube1.set_dots(0, 0);
+  my_tube2.set_dots(0, 0);
+  my_tube3.set_dots(0, 0);
+  my_tube4.set_dots(0, 0);
+}
+
 // Function displaying time
 void displayCurrentTime()
 {
+  if (hour() == 0 && minute() == 0 && second() == 0)
+  { //Get fresh twilight times just after midnight
+    getSunrise();
+  }
 
   if (hour() > 19 && hour() < 24)
   {
@@ -293,18 +504,11 @@ void displayCurrentTime()
     digfour = minute() - 50;
   }
 
-  Serial.print(digone);
-  Serial.print(digtwo);
-  Serial.print(digthree);
-  Serial.print(digfour);
-  Serial.println();
-
   // Change brightness according to time of day
-  int brightness = 90;
-  int secondTubeBright = 90;
 
-  if (hour() >= 18 || hour() < 6)
+  if (ChozenZone.toUTC(now()) >= darkTime || ChozenZone.toUTC(now()) < brightTime)
   {
+    darkTheme = true;
     brightness = 30;
     if (tickDot)
     {
@@ -317,6 +521,7 @@ void displayCurrentTime()
   }
   else
   {
+    darkTheme = false;
     brightness = 100;
   }
 
@@ -335,8 +540,7 @@ void displayCurrentTime()
   }
   my_tube3.show_digit(digthree, brightness, 0);
   my_tube4.show_digit(digfour, brightness, 0);
-
-  delay(1000);
+  Serial.println(darkTheme);
 }
 
 // Function for regular NTP time sync
@@ -389,7 +593,7 @@ void syncTime()
       Serial.println(epoch);
       time_t utc = epoch;
       time_t localt;
-      localt = CE.toLocal(utc);
+      localt = ChozenZone.toLocal(utc);
       setTime(localt);
     }
   }
@@ -538,7 +742,7 @@ void setup()
     Serial.println(epoch);
     time_t utc = epoch;
     time_t localt;
-    localt = CE.toLocal(utc);
+    localt = ChozenZone.toLocal(utc);
     setTime(localt);
 
     // print the hour, minute and second:
@@ -559,6 +763,7 @@ void setup()
     }
     Serial.println(epoch % 60); // print the second
   }
+  getSunrise();
 }
 
 void loop()
@@ -577,25 +782,21 @@ void loop()
     syncTime();
   }
 
-  // if (millis() >= time_3 + INTERVAL3)
-  // {
-  //   time_3 += INTERVAL3;
-  //   // print_time(time_3);
-  //   // Serial.println("My name is Message the third.");
-  // }
+  if (millis() >= time_3 + INTERVAL3)
+  {
+    time_3 += INTERVAL3;
+    displayCurrentTime();
+  }
 
-  // if (millis() >= time_4 + INTERVAL4)
-  // {
-  //   time_4 += INTERVAL4;
-  //   // print_time(time_4);
-  //   // Serial.println("Message four is in the house!");
-  // }
+  if (millis() >= time_4 + INTERVAL4)
+  {
+    time_4 += INTERVAL4;
+    displayDate();
+  }
 
   // Configure tube LED colours here
   my_tube1.set_led(0, 0, 0); // purple;
   my_tube2.set_led(0, 0, 0); // yellow;
   my_tube3.set_led(0, 0, 0); // red
   my_tube4.set_led(0, 0, 0); // blue
-
-  displayCurrentTime();
 }
