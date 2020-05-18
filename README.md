@@ -10,6 +10,9 @@ Has the following features:
 *   Anti-cathode poisoning routine
 *   Customizable RGB LED for each tube
 
+Planned Feature:
+*   Geolocation from IP
+
 Hardware:
 *   Wemos D1 Pro
 *   IN-14 tubes X 4
