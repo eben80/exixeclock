@@ -350,10 +350,10 @@ void displayDate()
   my_tube4.set_dots(0, 0);
 
   // Configure tube LED colours here
-  my_tube1.set_led(255, 0, 0); // purple;
-  my_tube2.set_led(255, 0, 0); // yellow;
-  my_tube3.set_led(0, 0, 255); // red
-  my_tube4.set_led(0, 0, 255); // blue
+  my_tube1.set_led(0, 0, 0); // purple;
+  my_tube2.set_led(0, 0, 0); // yellow;
+  my_tube3.set_led(0, 0, 0); // red
+  my_tube4.set_led(0, 0, 0); // blue
 
   // Set month
   my_tube1.set_dots(brightness, 0);
@@ -400,10 +400,10 @@ void displayDate()
   my_tube4.set_dots(0, 0);
 
     // Configure tube LED colours here
-  my_tube1.set_led(255, 255, 255); // purple;
-  my_tube2.set_led(255, 255, 255); // yellow;
-  my_tube3.set_led(255, 255, 255); // red
-  my_tube4.set_led(255, 255, 255); // blue
+  my_tube1.set_led(0, 0, 0); // purple;
+  my_tube2.set_led(0, 0, 0); // yellow;
+  my_tube3.set_led(0, 0, 0); // red
+  my_tube4.set_led(0, 0, 0); // blue
   // Set year
   int ones = (year() % 10);
   int tens = ((year() / 10) % 10);
