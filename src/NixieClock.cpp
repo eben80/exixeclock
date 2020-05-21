@@ -22,6 +22,7 @@
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #include <ArduinoJson.h> //For sunrise/sunset api
+#include "TelnetStream.h"
 
 // Section for configuring your time zones
 // Central European Time (Frankfurt, Paris) - Configure yours here.
@@ -52,12 +53,15 @@ WiFiClient client;
 #define INTERVAL2 86400000 // Every 24 hours NTP time sync
 #define INTERVAL3 1000     // Update time display every second
 #define INTERVAL4 30000    // Display date
+#define INTERVAL5 7200000  // Display date
 
 unsigned long time_1 = 0;
 unsigned long time_2 = 0;
 unsigned long time_3 = 0;
 unsigned long time_4 = 0;
+unsigned long time_5 = 0;
 
+unsigned long entry;
 // change those to the cs pins you're using
 int cs1 = 15;
 int cs2 = 16;
@@ -343,7 +347,7 @@ void antiDote()
 void displayDate()
 {
 
-    // Reset dots
+  // Reset dots
   my_tube1.set_dots(0, 0);
   my_tube2.set_dots(0, 0);
   my_tube3.set_dots(0, 0);
@@ -399,7 +403,7 @@ void displayDate()
   my_tube3.set_dots(0, 0);
   my_tube4.set_dots(0, 0);
 
-    // Configure tube LED colours here
+  // Configure tube LED colours here
   my_tube1.set_led(0, 0, 0); // purple;
   my_tube2.set_led(0, 0, 0); // yellow;
   my_tube3.set_led(0, 0, 0); // red
@@ -428,10 +432,10 @@ void displayDate()
 // Function displaying time
 void displayCurrentTime()
 {
-  if (hour() == 0 && minute() == 0 && second() == 0)
-  { //Get fresh twilight times just after midnight
-    getSunrise();
-  }
+  // if (hour() == 0 && minute() == 0 && second() == 0)
+  // { //Get fresh twilight times just after midnight
+  //   getSunrise();
+  // }
 
   if (hour() > 19 && hour() < 24)
   {
@@ -523,6 +527,7 @@ void displayCurrentTime()
   {
     darkTheme = false;
     brightness = 100;
+    secondTubeBright = brightness;
   }
 
   my_tube1.show_digit(digone, brightness, 0);
@@ -541,6 +546,10 @@ void displayCurrentTime()
   my_tube3.show_digit(digthree, brightness, 0);
   my_tube4.show_digit(digfour, brightness, 0);
   // Serial.println(darkTheme);
+  TelnetStream.print("Dark theme active: ");
+  TelnetStream.println(darkTheme);
+  TelnetStream.println("Sunrise: " + CTBegin);
+  TelnetStream.println("Sunset: " + CTEnds);
 }
 
 // Function for regular NTP time sync
@@ -687,7 +696,7 @@ void setup()
       Serial.println("End Failed");
     }
   });
-
+  TelnetStream.begin();
   ArduinoOTA.begin();
 
   // ONLY CALL THIS ONCE
@@ -769,13 +778,13 @@ void setup()
 void loop()
 {
   ArduinoOTA.handle(); // OTA handler
-                       
+
   if (millis() >= time_1 + INTERVAL1) // Anti cathode poisoning task
   {
     time_1 += INTERVAL1;
     antiDote();
   }
-  
+
   if (millis() >= time_2 + INTERVAL2) // Regular NTP time sync task
   {
     time_2 += INTERVAL2;
@@ -792,6 +801,12 @@ void loop()
   {
     time_4 += INTERVAL4;
     displayDate();
+  }
+
+  if (millis() >= time_5 + INTERVAL5) // Update sunrise time.
+  {
+    time_5 += INTERVAL5;
+    getSunrise();
   }
 
   // Configure tube LED colours here

@@ -18,7 +18,7 @@ Planned Feature:
 *   Geolocation from IP
 
 Hardware:
-*   Wemos D1 Pro
+*   Wemos D1 Mini Pro
 *   IN-14 tubes X 4
 *   Exixe IN-14 tube drivers x 4
 *   NCH6100HV High Voltage DC Power Supply
