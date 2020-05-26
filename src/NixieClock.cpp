@@ -8,6 +8,7 @@
 
 */
 #include <Arduino.h>
+#include <FS.h>
 #include "exixe.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -23,6 +24,17 @@
 
 #include <ArduinoJson.h> //For sunrise/sunset api
 #include "TelnetStream.h"
+#include <ESP8266WebServer.h>
+
+ESP8266WebServer server(80);
+
+const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
+const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}</style>";
+const String HTTP1_SCRIPT = "<script>function c(l){document.getElementById('s').value=l.innerText||l.textContent;document.getElementById('p').focus();}</script>";
+const String HTTP1_HEAD_END = "</head><body><div style='text-align:left;display:inline-block;min-width:260px;'>";
+
+// const String HOMEPAGE1 = "<form action=\"/cmd1\" method=\"get\"><button class=\"button3\">Red</button></form><br/><form action=\"/cmd2\" method=\"get\"><button class=\"button6\">Green</button></form><br/> <form action=\"/cmd3\" method=\"get\"><button class=\"button2\">Blue</button></form><br/><form action=\"/cmd4\" method=\"get\"><button class=\"button4\">Off</button></form><br/>    ";
+const String HOMEPAGE1 = "<form action=\"/cmd1\" method=\"get\">Dynamic Brightness:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/> <form action=\"/cmd2\" method=\"get\">Display Date:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/><form action=\"/cmd3\" method=\"get\">Display Year:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/><form action=\"/cmd4\" method=\"get\"><button class=\"button3\">Antidote Sequence</button></form></html>       ";
 
 // Section for configuring your time zones
 // Central European Time (Frankfurt, Paris) - Configure yours here.
@@ -55,6 +67,8 @@ WiFiClient client;
 #define INTERVAL4 30000    // Display date
 #define INTERVAL5 7200000  // Display date
 
+#define CONFIG_FILE "/settings.json"
+
 unsigned long time_1 = 0;
 unsigned long time_2 = 0;
 unsigned long time_3 = 0;
@@ -84,7 +98,10 @@ String CTEnds = "";
 long brightTime = 0;
 long darkTime = 0;
 bool darkTheme = false;
-bool dynamicBright = true; // Use web-sourced twilight times or static times.
+
+bool useDynamicBright = true; // Use web-sourced twilight times or static times.
+bool showDate = true;
+bool showYear = false;
 
 String lightStart = "6:00:00"; // When to start normal brightness
 String darkStart = "18:00:00"; // When to start reduced brightness
@@ -194,7 +211,7 @@ long processTwilight(String twilightTime, bool isPM) //Takes time from twilight 
 
 void getSunrise() // Get sunrise/sunset from location
 {
-  if (dynamicBright)
+  if (useDynamicBright)
   {
     if (WL_CONNECTED)
     {
@@ -360,42 +377,42 @@ void displayDate()
   my_tube4.set_led(0, 0, 0); // blue
 
   // Set month
-  my_tube1.set_dots(brightness, 0);
+  my_tube3.set_dots(brightness, 0);
   if (month() < 10)
   {
-    my_tube1.show_digit(0, brightness, 0);
-    my_tube2.show_digit(month(), brightness, 0);
+    my_tube3.show_digit(0, brightness, 0);
+    my_tube4.show_digit(month(), brightness, 0);
   }
   else
   {
-    my_tube1.show_digit(1, brightness, 0);
-    my_tube2.show_digit(month() - 10, brightness, 0);
+    my_tube3.show_digit(1, brightness, 0);
+    my_tube4.show_digit(month() - 10, brightness, 0);
   }
-  my_tube2.set_dots(0, brightness);
+  my_tube4.set_dots(0, brightness);
 
   // Set day
-  my_tube3.set_dots(brightness, 0);
+  my_tube1.set_dots(brightness, 0);
   if (day() > 29)
   {
-    my_tube3.show_digit(3, brightness, 0);
-    my_tube4.show_digit(day() - 30, brightness, 0);
+    my_tube1.show_digit(3, brightness, 0);
+    my_tube2.show_digit(day() - 30, brightness, 0);
   }
   else if (day() > 19)
   {
-    my_tube3.show_digit(2, brightness, 0);
-    my_tube4.show_digit(day() - 20, brightness, 0);
+    my_tube1.show_digit(2, brightness, 0);
+    my_tube2.show_digit(day() - 20, brightness, 0);
   }
   else if (day() > 9)
   {
-    my_tube3.show_digit(1, brightness, 0);
-    my_tube4.show_digit(day() - 10, brightness, 0);
+    my_tube1.show_digit(1, brightness, 0);
+    my_tube2.show_digit(day() - 10, brightness, 0);
   }
   else
   {
-    my_tube3.show_digit(0, brightness, 0);
-    my_tube4.show_digit(day(), brightness, 0);
+    my_tube1.show_digit(0, brightness, 0);
+    my_tube2.show_digit(day(), brightness, 0);
   }
-  my_tube4.set_dots(0, brightness);
+  my_tube2.set_dots(0, brightness);
   delay(2500);
   // Reset dots
   my_tube1.set_dots(0, 0);
@@ -403,30 +420,33 @@ void displayDate()
   my_tube3.set_dots(0, 0);
   my_tube4.set_dots(0, 0);
 
-  // Configure tube LED colours here
-  my_tube1.set_led(0, 0, 0); // purple;
-  my_tube2.set_led(0, 0, 0); // yellow;
-  my_tube3.set_led(0, 0, 0); // red
-  my_tube4.set_led(0, 0, 0); // blue
-  // Set year
-  int ones = (year() % 10);
-  int tens = ((year() / 10) % 10);
-  int hundreds = ((year() / 100) % 10);
-  int thousands = (year() / 1000);
+  if (showYear)
+  {
+    // Configure tube LED colours here
+    my_tube1.set_led(0, 0, 0); // purple;
+    my_tube2.set_led(0, 0, 0); // yellow;
+    my_tube3.set_led(0, 0, 0); // red
+    my_tube4.set_led(0, 0, 0); // blue
+    // Set year
+    int ones = (year() % 10);
+    int tens = ((year() / 10) % 10);
+    int hundreds = ((year() / 100) % 10);
+    int thousands = (year() / 1000);
 
-  my_tube1.set_dots(brightness, 0);
+    my_tube1.set_dots(brightness, 0);
 
-  my_tube1.show_digit(thousands, brightness, 0);
-  my_tube2.show_digit(hundreds, brightness, 0);
-  my_tube3.show_digit(tens, brightness, 0);
-  my_tube4.show_digit(ones, brightness, 0);
-  my_tube4.set_dots(0, brightness);
-  delay(2500);
-  // Reset dots
-  my_tube1.set_dots(0, 0);
-  my_tube2.set_dots(0, 0);
-  my_tube3.set_dots(0, 0);
-  my_tube4.set_dots(0, 0);
+    my_tube1.show_digit(thousands, brightness, 0);
+    my_tube2.show_digit(hundreds, brightness, 0);
+    my_tube3.show_digit(tens, brightness, 0);
+    my_tube4.show_digit(ones, brightness, 0);
+    my_tube4.set_dots(0, brightness);
+    delay(2500);
+    // Reset dots
+    my_tube1.set_dots(0, 0);
+    my_tube2.set_dots(0, 0);
+    my_tube3.set_dots(0, 0);
+    my_tube4.set_dots(0, 0);
+  }
 }
 
 // Function displaying time
@@ -550,6 +570,12 @@ void displayCurrentTime()
   TelnetStream.println(darkTheme);
   TelnetStream.println("Sunrise: " + CTBegin);
   TelnetStream.println("Sunset: " + CTEnds);
+  TelnetStream.print("DynBright: ");
+  TelnetStream.println(useDynamicBright);
+  TelnetStream.print("Showdate: ");
+  TelnetStream.println(showDate);
+  TelnetStream.print("Showyear:  ");
+  TelnetStream.println(showYear);
 }
 
 // Function for regular NTP time sync
@@ -606,6 +632,77 @@ void syncTime()
       setTime(localt);
     }
   }
+}
+
+void handleRoot()
+{
+  String s = HTTP1_HEAD;
+  s += HTTP1_STYLE;
+  s += HTTP1_SCRIPT;
+  s += HTTP1_HEAD_END;
+  s += "<H3>Nixie Clock Configuration</H3>";
+  s += HOMEPAGE1;
+  server.send(200, "text/html", s);
+}
+
+void cmd1()
+{
+  String s = HTTP1_HEAD;
+  s += HTTP1_STYLE;
+  s += HTTP1_SCRIPT;
+  s += HTTP1_HEAD_END;
+  s += "<H3>Nixie Clock Configuration</H3>";
+  s += HOMEPAGE1;
+  server.send(200, "text/html", s);
+  //  digitalWrite(D0,HIGH);
+}
+void cmd2()
+{
+  String s = HTTP1_HEAD;
+  s += HTTP1_STYLE;
+  s += HTTP1_SCRIPT;
+  s += HTTP1_HEAD_END;
+  s += "<H3>Nixie Clock Configuration</H3>";
+  s += HOMEPAGE1;
+  server.send(200, "text/html", s);
+  // digitalWrite(D1,HIGH);
+}
+void cmd3()
+{
+  String s = HTTP1_HEAD;
+  s += HTTP1_STYLE;
+  s += HTTP1_SCRIPT;
+  s += HTTP1_HEAD_END;
+  s += "<H3>Nixie Clock Configuration</H3>";
+  s += HOMEPAGE1;
+  server.send(200, "text/html", s);
+  //  digitalWrite(D2,HIGH);
+}
+void cmd4()
+{
+  String s = HTTP1_HEAD;
+  s += HTTP1_STYLE;
+  s += HTTP1_SCRIPT;
+  s += HTTP1_HEAD_END;
+  s += "<H3>Nixie Clock Configuration</H3>";
+  s += HOMEPAGE1;
+  server.send(200, "text/html", s);
+  // ESP.restart();
+  antiDote();
+  // digitalWrite(D0,LOW);
+  //  digitalWrite(D1,LOW);
+  //   digitalWrite(D2,LOW);
+}
+
+// file io
+File GetFile(String fileName)
+{
+  File textFile;
+  if (SPIFFS.exists(fileName))
+  {
+    textFile = SPIFFS.open(fileName, "r");
+  }
+  return textFile;
 }
 
 void setup()
@@ -699,6 +796,38 @@ void setup()
   TelnetStream.begin();
   ArduinoOTA.begin();
 
+// Read persistent config from JSON on SPIFFS
+  if (SPIFFS.begin())
+  {
+    Serial.println("mounted file system");
+
+    // parse json config file
+    File jsonFile = GetFile(CONFIG_FILE);
+    if (jsonFile)
+    {
+      // Allocate a buffer to store contents of the file.
+      size_t size = jsonFile.size();
+      std::unique_ptr<char[]> jsonBuf(new char[size]);
+      jsonFile.readBytes(jsonBuf.get(), size);
+
+      DynamicJsonDocument jsonBuffer(176);
+      auto error = deserializeJson(jsonBuffer, jsonBuf.get());
+      // JsonObject& json = jsonBuffer.parseObject(jsonBuf.get());
+      if (!error)
+      {
+        useDynamicBright = jsonBuffer["dynamicbright"];
+        showDate = jsonBuffer["showdate"];
+        showYear = jsonBuffer["showyear"];
+        // strcpy(cloudmqtt_pass, json["cloudmqtt_pass"]);
+      }
+      else
+      {
+        Serial.println("failed to load json config");
+      }
+      jsonFile.close();
+    }
+  }
+
   // ONLY CALL THIS ONCE
   my_tube1.spi_init();
 
@@ -773,6 +902,14 @@ void setup()
     Serial.println(epoch % 60); // print the second
   }
   getSunrise();
+  server.on("/", handleRoot);
+  server.on("/cmd1", cmd1);
+  server.on("/cmd2", cmd2);
+  server.on("/cmd3", cmd3);
+  server.on("/cmd4", cmd4);
+
+  server.begin();
+  TelnetStream.println("HTTP server started");
 }
 
 void loop()
@@ -800,7 +937,10 @@ void loop()
   if (millis() >= time_4 + INTERVAL4) // Display date
   {
     time_4 += INTERVAL4;
-    displayDate();
+    if (showDate)
+    {
+      displayDate();
+    }
   }
 
   if (millis() >= time_5 + INTERVAL5) // Update sunrise time.
@@ -810,8 +950,9 @@ void loop()
   }
 
   // Configure tube LED colours here
-  my_tube1.set_led(0, 0, 0); // purple;
-  my_tube2.set_led(0, 0, 0); // yellow;
-  my_tube3.set_led(0, 0, 0); // red
-  my_tube4.set_led(0, 0, 0); // blue
+  // my_tube1.set_led(0, 0, 0); // purple;
+  // my_tube2.set_led(0, 0, 0); // yellow;
+  // my_tube3.set_led(0, 0, 0); // red
+  // my_tube4.set_led(0, 0, 0); // blue
+  server.handleClient();
 }
