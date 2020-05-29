@@ -31,6 +31,8 @@ ESP8266WebServer server(80);
 String DYNBRIGHTSEL = "";
 String DISPDATESEL = "";
 String DISPYEARSEL = "";
+String LAT = "";
+String LONG = "";
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}</style>";
@@ -38,7 +40,11 @@ const String HTTP1_SCRIPT = "<script src=\"https://ajax.googleapis.com/ajax/libs
 const String HTTP2_SCRIPT = "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js\"></script><script>$(document).ready(function(){$(\'#button2\').change(function(){$(\'#configForm\').submit();}); $(\'#cmd4\').change(function(){$(\'#cmd4Form\').submit();});window.alert('Saved');});</script>";
 const String HTTP1_HEAD_END = "</head><body><div style='text-align:left;display:inline-block;min-width:260px;'>";
 const String HOMEPAGE1 = "<form id=\"configForm\" action=\"/configForm\" method=\"get\">";
-String LATLONG = "Latitude: <label class=\"text\"> <input type=\"text\" id=\"latitude\" name=\"latitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label>Longitude: <label class=\"text\"> <input type=\"text\" id=\"longitude\" name=\"longitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label><br/>";
+// String LATLONG = "Latitude: <label class=\"text\"> <input type=\"text\" id=\"latitude\" name=\"latitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label>Longitude: <label class=\"text\"> <input type=\"text\" id=\"longitude\" name=\"longitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label><br/>";
+const String LATSTART = "Latitude: <label class=\"text\"> <input type=\"text\" id=\"latitude\" name=\"latitude\" value=\"";
+const String LATEND = "\" pattern=\"-?\\d{1,3}\\.\\d+\"></label>";
+const String LONGSTART = "Longitude: <label class=\"text\"> <input type=\"text\" id=\"longitude\" name=\"longitude\" value=\"";
+const String LONGEND = "\" pattern=\"-?\\d{1,3}\\.\\d+\"></label><br/>";
 const String DYNBRIGHTSTART = "Dynamic Brightness: <label class=\"switch\"> <input id=\"cmd1\" type=\"checkbox\" name=\"dynbright\" ";
 const String DYNBRIGHTEND = "> <span class=\"slider round\"></span></label><br/>";
 const String DISPDATESTART = "Display Date: <label class=\"switch\"> <input id=\"cmd2\" type=\"checkbox\" name=\"dispdate\" ";
@@ -714,7 +720,12 @@ void handleRoot()
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
-  s += LATLONG;
+  s += LATSTART;
+  s += LAT;
+  s += LATEND;
+  s += LONGSTART;
+  s += LONG;
+  s += LONGEND;
   s += DYNBRIGHTSTART;
   s += DYNBRIGHTSEL;
   s += DYNBRIGHTEND;
@@ -731,6 +742,10 @@ void handleRoot()
 void configForm()
 {
   // String message = "";
+  LAT = server.arg("latitude");
+  latitude = LAT.toFloat();
+  LONG = server.arg("longitude");
+  longitude = LONG.toFloat();
 
   if (server.arg("dynbright") == "on")
   {
@@ -774,7 +789,12 @@ void configForm()
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
-  s += LATLONG;
+  s += LATSTART;
+  s += LAT;
+  s += LATEND;
+  s += LONGSTART;
+  s += LONG;
+  s += LONGEND;
   s += DYNBRIGHTSTART;
   s += DYNBRIGHTSEL;
   s += DYNBRIGHTEND;
@@ -796,7 +816,12 @@ void cmd4()
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
-  s += LATLONG;
+  s += LATSTART;
+  s += LAT;
+  s += LATEND;
+  s += LONGSTART;
+  s += LONG;
+  s += LONGEND;
   s += DYNBRIGHTSTART;
   s += DYNBRIGHTSEL;
   s += DYNBRIGHTEND;
@@ -942,6 +967,8 @@ void setup()
         {
           DISPYEARSEL = "checked";
         }
+        LAT = String(latitude, 6);
+        LONG = String(longitude, 6);
         // strcpy(cloudmqtt_pass, json["cloudmqtt_pass"]);
       }
       else
