@@ -9,6 +9,7 @@
 */
 #include <Arduino.h>
 #include <FS.h>
+// #include <LittleFS.h>
 #include "exixe.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -27,14 +28,24 @@
 #include <ESP8266WebServer.h>
 
 ESP8266WebServer server(80);
+String DYNBRIGHTSEL = "";
+String DISPDATESEL = "";
+String DISPYEARSEL = "";
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}</style>";
-const String HTTP1_SCRIPT = "<script>function c(l){document.getElementById('s').value=l.innerText||l.textContent;document.getElementById('p').focus();}</script>";
+const String HTTP1_SCRIPT = "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js\"></script><script>$(document).ready(function(){$(\'#button2\').change(function(){$(\'#configForm\').submit();}); $(\'#cmd4\').change(function(){$(\'#cmd4Form\').submit();});});</script>";
+const String HTTP2_SCRIPT = "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js\"></script><script>$(document).ready(function(){$(\'#button2\').change(function(){$(\'#configForm\').submit();}); $(\'#cmd4\').change(function(){$(\'#cmd4Form\').submit();});window.alert('Saved');});</script>";
 const String HTTP1_HEAD_END = "</head><body><div style='text-align:left;display:inline-block;min-width:260px;'>";
-
-// const String HOMEPAGE1 = "<form action=\"/cmd1\" method=\"get\"><button class=\"button3\">Red</button></form><br/><form action=\"/cmd2\" method=\"get\"><button class=\"button6\">Green</button></form><br/> <form action=\"/cmd3\" method=\"get\"><button class=\"button2\">Blue</button></form><br/><form action=\"/cmd4\" method=\"get\"><button class=\"button4\">Off</button></form><br/>    ";
-const String HOMEPAGE1 = "<form action=\"/cmd1\" method=\"get\">Dynamic Brightness:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/> <form action=\"/cmd2\" method=\"get\">Display Date:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/><form action=\"/cmd3\" method=\"get\">Display Year:  <label class=\"switch\"> <input type=\"checkbox\" checked> <span class=\"slider round\"></span></label></form><br/><form action=\"/cmd4\" method=\"get\"><button class=\"button3\">Antidote Sequence</button></form></html>       ";
+const String HOMEPAGE1 = "<form id=\"configForm\" action=\"/configForm\" method=\"get\">";
+String LATLONG = "Latitude: <label class=\"text\"> <input type=\"text\" id=\"latitude\" name=\"latitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label>Longitude: <label class=\"text\"> <input type=\"text\" id=\"longitude\" name=\"longitude\" pattern=\"-?\\d{1,3}\\.\\d+\"></label><br/>";
+const String DYNBRIGHTSTART = "Dynamic Brightness: <label class=\"switch\"> <input id=\"cmd1\" type=\"checkbox\" name=\"dynbright\" ";
+const String DYNBRIGHTEND = "> <span class=\"slider round\"></span></label><br/>";
+const String DISPDATESTART = "Display Date: <label class=\"switch\"> <input id=\"cmd2\" type=\"checkbox\" name=\"dispdate\" ";
+const String DISPDATEEND = "> <span class=\"slider round\"></span></label><br/>";
+const String DISPYEARSTART = " Display Year: <label class=\"switch\"> <input id=\"cmd3\" type=\"checkbox\" name=\"dispyear\" ";
+const String DISPYEAREND = "> <span class=\"slider round\"></span></label><br/>";
+const String HOMEPAGEEND = "<button id=\"button2\"> Save </button></form><br/> <form id=\"cmd4Form\" action=\"/cmd4\" method=\"get\"><button id=\"cmd4\" class=\"button3\">Antidote Sequence</button><br/> </form> </div></body></html>";
 
 // Section for configuring your time zones
 // Central European Time (Frankfurt, Paris) - Configure yours here.
@@ -102,6 +113,8 @@ bool darkTheme = false;
 bool useDynamicBright = true; // Use web-sourced twilight times or static times.
 bool showDate = true;
 bool showYear = false;
+bool jsonErrorRead = false;
+bool jsonErrorWrite = false;
 
 String lightStart = "6:00:00"; // When to start normal brightness
 String darkStart = "18:00:00"; // When to start reduced brightness
@@ -112,6 +125,16 @@ exixe my_tube2 = exixe(cs2);
 exixe my_tube3 = exixe(cs3);
 exixe my_tube4 = exixe(cs4);
 
+// file io
+File GetFile(String fileName)
+{
+  File textFile;
+  if (SPIFFS.exists(fileName))
+  {
+    textFile = SPIFFS.open(fileName, "r");
+  }
+  return textFile;
+}
 // send an NTP request to the time server at the given address
 // unsigned long sendNTPpacket(IPAddress &address)
 void sendNTPpacket(IPAddress &address)
@@ -452,10 +475,6 @@ void displayDate()
 // Function displaying time
 void displayCurrentTime()
 {
-  // if (hour() == 0 && minute() == 0 && second() == 0)
-  // { //Get fresh twilight times just after midnight
-  //   getSunrise();
-  // }
 
   if (hour() > 19 && hour() < 24)
   {
@@ -566,16 +585,28 @@ void displayCurrentTime()
   my_tube3.show_digit(digthree, brightness, 0);
   my_tube4.show_digit(digfour, brightness, 0);
   // Serial.println(darkTheme);
-  TelnetStream.print("Dark theme active: ");
-  TelnetStream.println(darkTheme);
-  TelnetStream.println("Sunrise: " + CTBegin);
-  TelnetStream.println("Sunset: " + CTEnds);
-  TelnetStream.print("DynBright: ");
-  TelnetStream.println(useDynamicBright);
-  TelnetStream.print("Showdate: ");
-  TelnetStream.println(showDate);
-  TelnetStream.print("Showyear:  ");
-  TelnetStream.println(showYear);
+  // TelnetStream.print("Dark theme active: ");
+  // TelnetStream.println(darkTheme);
+  // TelnetStream.println("Sunrise: " + CTBegin);
+  // TelnetStream.println("Sunset: " + CTEnds);
+  // TelnetStream.print("DynBright: ");
+  // TelnetStream.println(useDynamicBright);
+  // TelnetStream.print("Showdate: ");
+  // TelnetStream.println(showDate);
+  // TelnetStream.print("Showyear:  ");
+  // TelnetStream.println(showYear);
+  // TelnetStream.print("Latitude:  ");
+  // TelnetStream.println(latitude, 6);
+  // TelnetStream.print("Longitude:  ");
+  // TelnetStream.println(longitude, 6);
+  // TelnetStream.println("DYNBRIGHT=" + DYNBRIGHTSEL);
+  // TelnetStream.println("DISPDATE=" + DISPDATESEL);
+  // TelnetStream.println("DISPYEAR=" + DISPYEARSEL);
+  // TelnetStream.print("JsonErrorRead:  ");
+  // TelnetStream.println(jsonErrorRead);
+  // TelnetStream.print("JsonErrorWrite:  ");
+  // TelnetStream.println(jsonErrorWrite);
+  // TelnetStream.println("---------------------------------");
 }
 
 // Function for regular NTP time sync
@@ -634,6 +665,47 @@ void syncTime()
   }
 }
 
+void saveConfiguration()
+{
+  TelnetStream.println("Start SaveConfig");
+  // Read persistent config from JSON on SPIFFS
+  if (SPIFFS.begin())
+  {
+    TelnetStream.println("SPIFFS Start success");
+
+    SPIFFS.remove(CONFIG_FILE);
+    File jsonFile = SPIFFS.open(CONFIG_FILE, "w");
+    if (jsonFile)
+    {
+      TelnetStream.println("Config file create succeeded");
+      DynamicJsonDocument jsonBuffer(176);
+
+      jsonBuffer["dynamicbright"] = useDynamicBright;
+      jsonBuffer["showdate"] = showDate;
+      jsonBuffer["showyear"] = showYear;
+      jsonBuffer["location"]["latitude"] = latitude;
+      jsonBuffer["location"]["longitude"] = longitude;
+      if (serializeJson(jsonBuffer, jsonFile) == 0)
+      {
+        TelnetStream.println("Serialization failed");
+      }
+      else
+      {
+        TelnetStream.println("Serialization done.");
+      }
+      jsonFile.close();
+    }
+    else
+    {
+      TelnetStream.println("Config file create failed.");
+    }
+  }
+  else
+  {
+    TelnetStream.println("error starting SPIFFS");
+  }
+}
+
 void handleRoot()
 {
   String s = HTTP1_HEAD;
@@ -642,42 +714,80 @@ void handleRoot()
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
+  s += LATLONG;
+  s += DYNBRIGHTSTART;
+  s += DYNBRIGHTSEL;
+  s += DYNBRIGHTEND;
+  s += DISPDATESTART;
+  s += DISPDATESEL;
+  s += DISPDATEEND;
+  s += DISPYEARSTART;
+  s += DISPYEARSEL;
+  s += DISPYEAREND;
+  s += HOMEPAGEEND;
   server.send(200, "text/html", s);
 }
 
-void cmd1()
+void configForm()
 {
+  // String message = "";
+
+  if (server.arg("dynbright") == "on")
+  {
+    DYNBRIGHTSEL = "checked";
+    useDynamicBright = true;
+  }
+  else
+  {
+
+    DYNBRIGHTSEL = "";
+    useDynamicBright = false;
+  }
+
+  if (server.arg("dispdate") == "on")
+  {
+    DISPDATESEL = "checked";
+    showDate = true;
+  }
+  else
+  {
+
+    DISPDATESEL = "";
+    showDate = false;
+  }
+
+  if (server.arg("dispyear") == "on")
+  {
+    DISPYEARSEL = "checked";
+    showYear = true;
+  }
+  else
+  {
+
+    DISPYEARSEL = "";
+    showYear = false;
+  }
+  saveConfiguration();
   String s = HTTP1_HEAD;
   s += HTTP1_STYLE;
-  s += HTTP1_SCRIPT;
+  s += HTTP2_SCRIPT;
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
+  s += LATLONG;
+  s += DYNBRIGHTSTART;
+  s += DYNBRIGHTSEL;
+  s += DYNBRIGHTEND;
+  s += DISPDATESTART;
+  s += DISPDATESEL;
+  s += DISPDATEEND;
+  s += DISPYEARSTART;
+  s += DISPYEARSEL;
+  s += DISPYEAREND;
+  s += HOMEPAGEEND;
   server.send(200, "text/html", s);
-  //  digitalWrite(D0,HIGH);
 }
-void cmd2()
-{
-  String s = HTTP1_HEAD;
-  s += HTTP1_STYLE;
-  s += HTTP1_SCRIPT;
-  s += HTTP1_HEAD_END;
-  s += "<H3>Nixie Clock Configuration</H3>";
-  s += HOMEPAGE1;
-  server.send(200, "text/html", s);
-  // digitalWrite(D1,HIGH);
-}
-void cmd3()
-{
-  String s = HTTP1_HEAD;
-  s += HTTP1_STYLE;
-  s += HTTP1_SCRIPT;
-  s += HTTP1_HEAD_END;
-  s += "<H3>Nixie Clock Configuration</H3>";
-  s += HOMEPAGE1;
-  server.send(200, "text/html", s);
-  //  digitalWrite(D2,HIGH);
-}
+
 void cmd4()
 {
   String s = HTTP1_HEAD;
@@ -686,23 +796,23 @@ void cmd4()
   s += HTTP1_HEAD_END;
   s += "<H3>Nixie Clock Configuration</H3>";
   s += HOMEPAGE1;
+  s += LATLONG;
+  s += DYNBRIGHTSTART;
+  s += DYNBRIGHTSEL;
+  s += DYNBRIGHTEND;
+  s += DISPDATESTART;
+  s += DISPDATESEL;
+  s += DISPDATEEND;
+  s += DISPYEARSTART;
+  s += DISPYEARSEL;
+  s += DISPYEAREND;
+  s += HOMEPAGEEND;
   server.send(200, "text/html", s);
   // ESP.restart();
   antiDote();
   // digitalWrite(D0,LOW);
   //  digitalWrite(D1,LOW);
   //   digitalWrite(D2,LOW);
-}
-
-// file io
-File GetFile(String fileName)
-{
-  File textFile;
-  if (SPIFFS.exists(fileName))
-  {
-    textFile = SPIFFS.open(fileName, "r");
-  }
-  return textFile;
 }
 
 void setup()
@@ -796,7 +906,7 @@ void setup()
   TelnetStream.begin();
   ArduinoOTA.begin();
 
-// Read persistent config from JSON on SPIFFS
+  // Read persistent config from JSON on SPIFFS
   if (SPIFFS.begin())
   {
     Serial.println("mounted file system");
@@ -818,13 +928,32 @@ void setup()
         useDynamicBright = jsonBuffer["dynamicbright"];
         showDate = jsonBuffer["showdate"];
         showYear = jsonBuffer["showyear"];
+        latitude = jsonBuffer["location"]["latitude"].as<float>();
+        longitude = jsonBuffer["location"]["longitude"].as<float>();
+        if (useDynamicBright)
+        {
+          DYNBRIGHTSEL = "checked";
+        }
+        if (showDate)
+        {
+          DISPDATESEL = "checked";
+        }
+        if (showYear)
+        {
+          DISPYEARSEL = "checked";
+        }
         // strcpy(cloudmqtt_pass, json["cloudmqtt_pass"]);
       }
       else
       {
-        Serial.println("failed to load json config");
+        jsonErrorRead = true;
+        TelnetStream.println("failed to load json config");
       }
       jsonFile.close();
+    }
+    else
+    {
+      saveConfiguration();
     }
   }
 
@@ -903,11 +1032,8 @@ void setup()
   }
   getSunrise();
   server.on("/", handleRoot);
-  server.on("/cmd1", cmd1);
-  server.on("/cmd2", cmd2);
-  server.on("/cmd3", cmd3);
+  server.on("/configForm", configForm);
   server.on("/cmd4", cmd4);
-
   server.begin();
   TelnetStream.println("HTTP server started");
 }
