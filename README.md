@@ -13,6 +13,7 @@ Has the following features:
 *   Date and year display
 *   Anti-cathode poisoning routine
 *   Customizable RGB LED for each tube
+*   Web Interface to configure location, dynmic brightess and display settings.
 
 Planned Feature:
 *   Geolocation from IP
