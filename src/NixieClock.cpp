@@ -84,6 +84,7 @@ WiFiClient client;
 #define INTERVAL3 1000     // Update time display every second
 #define INTERVAL4 30000    // Display date
 #define INTERVAL5 7200000  // Get Sunrise time
+#define INTERVAL6 150000   // Display Temperature
 
 #define CONFIG_FILE "/settings.json"
 
@@ -92,6 +93,7 @@ unsigned long time_2 = 0;
 unsigned long time_3 = 0;
 unsigned long time_4 = 0;
 unsigned long time_5 = 0;
+unsigned long time_6 = 0;
 
 unsigned long entry;
 // change those to the cs pins you're using
@@ -391,6 +393,118 @@ void antiDote()
   delay(750);
 }
 
+void updateWeather()
+{
+  const uint16_t port = 80;
+  const char *host = "www.mapme.ga"; // ip or dns
+
+  // Use WiFiClient class to create TCP connections
+  // WiFiClient client;
+
+  if (client.connect(host, port))
+  {
+    // Send a HTTP request
+    client.println(F("GET /air/generatejson_latest_oled.php HTTP/1.0"));
+    client.println(F("Host: www.mapme.ga"));
+    client.println(F("Connection: close"));
+    if (client.println() == 0)
+    {
+      Serial.println(F("Failed to send request"));
+      return;
+    }
+
+    // Check HTTP status
+    char status[32] = {0};
+    client.readBytesUntil('\r', status, sizeof(status));
+    if (strcmp(status, "HTTP/1.1 200 OK") != 0)
+    {
+      Serial.print(F("Unexpected response: "));
+      Serial.println(status);
+      return;
+    }
+
+    // Skip HTTP headers
+    char endOfHeaders[] = "\r\n\r\n";
+    if (!client.find(endOfHeaders))
+    {
+      Serial.println(F("Invalid response"));
+      return;
+    }
+    //Serial.println(client);
+    // Allocate the JSON document
+    // Use arduinojson.org/v6/assistant to compute the capacity.
+    const size_t capacity = JSON_OBJECT_SIZE(14) + 190;
+    DynamicJsonDocument doc(capacity);
+
+    // Parse JSON object
+    DeserializationError error = deserializeJson(doc, client);
+    if (error)
+    {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.c_str());
+      return;
+    }
+    else
+    {
+
+      //deserializeJson(doc, json);
+
+      // const char *id = doc["id"];             // "60517"
+      // const char *datetime = doc["datetime"]; // "1553085991"
+      // const char *AQ = doc["AQ"];             // "0.00"
+      // const int PM25 = doc["PM25"];           // "4.30"
+      // const int PM10 = doc["PM10"];           // "6.90"
+      int temperature = doc["temperature"]; // "11.30"
+      // const char *pressure = doc["pressure"]; // "999.86"
+      // const char *humidity = doc["humidity"]; // "36.38"
+      // const char *location = doc["location"]; // ""
+      // const char *Light = doc["Light"];       // "159"
+      // Extract values
+      // Serial.println(F("Response: "));
+      // Serial.println(doc["temperature"].as<float>(), 2);
+      // Serial.println(doc["datetime"].as<long>());
+
+      // Disconnect
+      client.stop();
+      my_tube1.clear();
+      my_tube2.clear();
+      if (temperature <= 0)
+      {
+        my_tube3.set_led(0, 0, 254);
+        my_tube4.set_led(0, 0, 254);
+      }
+      else if (temperature > 0 && temperature <= 10)
+      {
+        my_tube3.set_led(0, 254, 0);
+        my_tube4.set_led(0, 254, 0);
+      }
+      else if (temperature > 10 && temperature < 25)
+      {
+        my_tube3.set_led(254, 254, 0);
+        my_tube4.set_led(254, 254, 0);
+      }
+      else if (temperature > 25)
+      {
+        my_tube3.set_led(254, 0, 0);
+        my_tube4.set_led(254, 0, 0);
+      }
+      temperature = abs(temperature);
+      my_tube3.show_digit((temperature / 10), brightness, 0);
+      my_tube4.show_digit((temperature % 10), brightness, 0);
+      delay(2500);
+      my_tube3.set_led(0, 0, 0);
+      my_tube4.set_led(0, 0, 0);
+    }
+  }
+  else
+  {
+    Serial.println("connection failed");
+    // Serial.println("wait 5 sec...");
+    // delay(5000);
+    // return;
+  }
+}
+
 void displayDate()
 {
 
@@ -556,27 +670,27 @@ void displayCurrentTime()
 
   if (useDynamicBright)
   {
-  // Change brightness according to time of day
+    // Change brightness according to time of day
 
-  if (ChozenZone.toUTC(now()) >= darkTime || ChozenZone.toUTC(now()) < brightTime)
-  {
-    darkTheme = true;
-    brightness = 30;
-    if (tickDot)
+    if (ChozenZone.toUTC(now()) >= darkTime || ChozenZone.toUTC(now()) < brightTime)
     {
-      secondTubeBright = 35;
+      darkTheme = true;
+      brightness = 30;
+      if (tickDot)
+      {
+        secondTubeBright = 35;
+      }
+      else
+      {
+        secondTubeBright = 30;
+      }
     }
     else
     {
-      secondTubeBright = 30;
+      darkTheme = false;
+      brightness = 100;
+      secondTubeBright = brightness;
     }
-  }
-  else
-  {
-    darkTheme = false;
-    brightness = 100;
-    secondTubeBright = brightness;
-  }
   }
   else
   {
@@ -1136,6 +1250,12 @@ void loop()
   {
     time_5 += INTERVAL5;
     getSunrise();
+  }
+
+  if (millis() >= time_6 + INTERVAL6) // Display Temp.
+  {
+    time_6 += INTERVAL6;
+    updateWeather();
   }
 
   // Configure tube LED colours here
