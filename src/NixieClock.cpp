@@ -33,6 +33,8 @@ String DISPDATESEL = "";
 String DISPYEARSEL = "";
 String LAT = "";
 String LONG = "";
+int checkminute = 0;
+int slotdelay = 30;
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}#opacity-slider{-webkit-appearance: none; height: 4px;}#opacity-slider::-webkit-slider-thumb{-webkit-appearance: none; background-color: #eee; height: 20px; width: 10px; opacity: .7; border-radius: 25px;}</style>";
@@ -494,6 +496,8 @@ void updateWeather()
       delay(2500);
       my_tube3.set_led(0, 0, 0);
       my_tube4.set_led(0, 0, 0);
+      my_tube3.clear();
+      my_tube4.clear();
     }
   }
   else
@@ -596,78 +600,6 @@ void displayDate()
 // Function displaying time
 void displayCurrentTime()
 {
-
-  if (hour() > 19 && hour() < 24)
-  {
-    digone = 2;
-  }
-  else if (hour() < 20 && hour() > 9)
-  {
-    digone = 1;
-  }
-  else
-  {
-    digone = 0;
-  }
-
-  if (hour() > 19 && hour() < 24)
-  {
-    digtwo = hour() - 20;
-  }
-  else if (hour() < 20 && hour() > 9)
-  {
-
-    digtwo = hour() - 10;
-  }
-  else if (hour() < 10 && hour() >= 0)
-  {
-
-    digtwo = hour();
-  }
-
-  else
-  {
-
-    digtwo = hour();
-  }
-
-  if (minute() < 10)
-  {
-
-    digthree = 0;
-    digfour = minute();
-  }
-  else if (minute() > 9 && minute() < 20)
-  {
-
-    digthree = 1;
-    digfour = minute() - 10;
-  }
-  else if (minute() > 19 && minute() < 30)
-  {
-
-    digthree = 2;
-    digfour = minute() - 20;
-  }
-  else if (minute() > 29 && minute() < 40)
-  {
-
-    digthree = 3;
-    digfour = minute() - 30;
-  }
-  else if (minute() > 39 && minute() < 50)
-  {
-
-    digthree = 4;
-    digfour = minute() - 40;
-  }
-  else
-  {
-
-    digthree = 5;
-    digfour = minute() - 50;
-  }
-
   if (useDynamicBright)
   {
     // Change brightness according to time of day
@@ -696,8 +628,59 @@ void displayCurrentTime()
   {
     secondTubeBright = brightness;
   }
-  my_tube1.show_digit(digone, brightness, 0);
-  my_tube2.show_digit(digtwo, secondTubeBright, 0);
+
+  digone = (hour() / 10);
+  digtwo = (hour() % 10);
+  digthree = (minute() / 10);
+  digfour = (minute() % 10);
+  if (minute() != checkminute)
+  {
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube1.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube1.show_digit(digone, brightness, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube2.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube2.show_digit(digtwo, secondTubeBright, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube3.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube3.show_digit(digthree, brightness, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube4.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+
+    my_tube4.show_digit(digfour, brightness, 0);
+    checkminute = minute();
+  }
+  else
+  {
+    my_tube1.show_digit(digone, brightness, 0);
+    my_tube2.show_digit(digtwo, secondTubeBright, 0);
+    my_tube3.show_digit(digthree, brightness, 0);
+    my_tube4.show_digit(digfour, brightness, 0);
+  }
+
   // Tick dot for seconds
   if (tickDot)
   {
@@ -709,8 +692,7 @@ void displayCurrentTime()
     my_tube2.set_dots(0, 0);
     tickDot = true;
   }
-  my_tube3.show_digit(digthree, brightness, 0);
-  my_tube4.show_digit(digfour, brightness, 0);
+
   // Serial.println(darkTheme);
   // TelnetStream.print("Dark theme active: ");
   // TelnetStream.println(darkTheme);
