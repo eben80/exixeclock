@@ -124,6 +124,7 @@ bool darkTheme = false;
 bool useDynamicBright = true; // Use web-sourced twilight times or static times.
 bool showDate = true;
 bool showYear = false;
+bool showTemp = true;
 bool jsonErrorRead = false;
 bool jsonErrorWrite = false;
 
@@ -512,54 +513,25 @@ void updateWeather()
 void displayDate()
 {
 
-  // Reset dots
-  my_tube1.set_dots(0, 0);
-  my_tube2.set_dots(0, 0);
-  my_tube3.set_dots(0, 0);
-  my_tube4.set_dots(0, 0);
-
-  // Configure tube LED colours here
-  my_tube1.set_led(0, 0, 0); // purple;
-  my_tube2.set_led(0, 0, 0); // yellow;
-  my_tube3.set_led(0, 0, 0); // red
-  my_tube4.set_led(0, 0, 0); // blue
+  // Reset tubes
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
 
   // Set month
   my_tube3.set_dots(brightness, 0);
-  if (month() < 10)
-  {
-    my_tube3.show_digit(0, brightness, 0);
-    my_tube4.show_digit(month(), brightness, 0);
-  }
-  else
-  {
-    my_tube3.show_digit(1, brightness, 0);
-    my_tube4.show_digit(month() - 10, brightness, 0);
-  }
+
+  my_tube3.show_digit((month() / 10), brightness, 0);
+  my_tube4.show_digit((month() % 10), brightness, 0);
+
   my_tube4.set_dots(0, brightness);
 
   // Set day
   my_tube1.set_dots(brightness, 0);
-  if (day() > 29)
-  {
-    my_tube1.show_digit(3, brightness, 0);
-    my_tube2.show_digit(day() - 30, brightness, 0);
-  }
-  else if (day() > 19)
-  {
-    my_tube1.show_digit(2, brightness, 0);
-    my_tube2.show_digit(day() - 20, brightness, 0);
-  }
-  else if (day() > 9)
-  {
-    my_tube1.show_digit(1, brightness, 0);
-    my_tube2.show_digit(day() - 10, brightness, 0);
-  }
-  else
-  {
-    my_tube1.show_digit(0, brightness, 0);
-    my_tube2.show_digit(day(), brightness, 0);
-  }
+  my_tube1.show_digit((day() / 10), brightness, 0);
+  my_tube2.show_digit((day() % 10), brightness, 0);
+
   my_tube2.set_dots(0, brightness);
   delay(2500);
   // Reset dots
@@ -1237,13 +1209,11 @@ void loop()
   if (millis() >= time_6 + INTERVAL6) // Display Temp.
   {
     time_6 += INTERVAL6;
-    updateWeather();
+    if (showTemp)
+    {
+      updateWeather();
+    }
   }
 
-  // Configure tube LED colours here
-  // my_tube1.set_led(0, 0, 0); // purple;
-  // my_tube2.set_led(0, 0, 0); // yellow;
-  // my_tube3.set_led(0, 0, 0); // red
-  // my_tube4.set_led(0, 0, 0); // blue
   server.handleClient();
 }
