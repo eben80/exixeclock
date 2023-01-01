@@ -9,7 +9,7 @@
 */
 #include <Arduino.h>
 #include <FS.h>
-// #include <LittleFS.h>
+#include <LittleFS.h>
 #include "exixe.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -24,8 +24,10 @@
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #include <ArduinoJson.h> //For sunrise/sunset api
-#include "TelnetStream.h"
+// #include "TelnetStream.h"
 #include <ESP8266WebServer.h>
+
+// #define DEBUG 
 
 ESP8266WebServer server(80);
 String DYNBRIGHTSEL = "";
@@ -33,6 +35,14 @@ String DISPDATESEL = "";
 String DISPYEARSEL = "";
 String LAT = "";
 String LONG = "";
+int checkminute = 0;
+int slotdelay = 30;
+
+// Regeneration digits
+int firstDigit[] = {};
+int secondDigit[] = {0, 9, 8};
+int thirdDigit[] = {};
+int fourthDigit[] = {};
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}#opacity-slider{-webkit-appearance: none; height: 4px;}#opacity-slider::-webkit-slider-thumb{-webkit-appearance: none; background-color: #eee; height: 20px; width: 10px; opacity: .7; border-radius: 25px;}</style>";
@@ -84,6 +94,7 @@ WiFiClient client;
 #define INTERVAL3 1000     // Update time display every second
 #define INTERVAL4 30000    // Display date
 #define INTERVAL5 7200000  // Get Sunrise time
+#define INTERVAL6 55000   // Display Temperature
 
 #define CONFIG_FILE "/settings.json"
 
@@ -92,6 +103,7 @@ unsigned long time_2 = 0;
 unsigned long time_3 = 0;
 unsigned long time_4 = 0;
 unsigned long time_5 = 0;
+unsigned long time_6 = 0;
 
 unsigned long entry;
 // change those to the cs pins you're using
@@ -120,6 +132,7 @@ bool darkTheme = false;
 bool useDynamicBright = true; // Use web-sourced twilight times or static times.
 bool showDate = true;
 bool showYear = false;
+bool showTemp = true;
 bool jsonErrorRead = false;
 bool jsonErrorWrite = false;
 
@@ -136,9 +149,9 @@ exixe my_tube4 = exixe(cs4);
 File GetFile(String fileName)
 {
   File textFile;
-  if (SPIFFS.exists(fileName))
+  if (LittleFS.exists(fileName))
   {
-    textFile = SPIFFS.open(fileName, "r");
+    textFile = LittleFS.open(fileName, "r");
   }
   return textFile;
 }
@@ -146,7 +159,7 @@ File GetFile(String fileName)
 // unsigned long sendNTPpacket(IPAddress &address)
 void sendNTPpacket(IPAddress &address)
 {
-  Serial.println("sending NTP packet...");
+  Serial.println("Sending NTP packet...");
   // set all bytes in the buffer to 0
   memset(packetBuffer, 0, NTP_PACKET_SIZE);
   // Initialize values needed to form NTP request
@@ -247,6 +260,7 @@ void getSunrise() // Get sunrise/sunset from location
     {
       HTTPClient http;
       http.useHTTP10(true);
+      Serial.print("Getting dusk and dawn values...\n");
       Serial.print("[HTTP] begin...\n");
 
       String urlBuf;
@@ -391,57 +405,232 @@ void antiDote()
   delay(750);
 }
 
-void displayDate()
+void regenerate(int firstDigit[], int secondDigit[], int thirdDigit[], int fourthDigit[])
 {
+  int firstArraySize = (sizeof(firstDigit) / sizeof(firstDigit[0]));
+  int secondArraySize = (sizeof(secondDigit) / sizeof(secondDigit[0]));
+  int thirdArraySize = (sizeof(thirdDigit) / sizeof(thirdDigit[0]));
+  int fourthArraySize = (sizeof(fourthDigit) / sizeof(fourthDigit[0]));
+  Serial.print(" FirstArray: ");
+  Serial.println(sizeof(firstDigit));
+  Serial.print(" SecondArray: ");
+  Serial.println(sizeof(secondDigit));
 
-  // Reset dots
-  my_tube1.set_dots(0, 0);
-  my_tube2.set_dots(0, 0);
-  my_tube3.set_dots(0, 0);
-  my_tube4.set_dots(0, 0);
-
-  // Configure tube LED colours here
-  my_tube1.set_led(0, 0, 0); // purple;
-  my_tube2.set_led(0, 0, 0); // yellow;
-  my_tube3.set_led(0, 0, 0); // red
-  my_tube4.set_led(0, 0, 0); // blue
-
-  // Set month
-  my_tube3.set_dots(brightness, 0);
-  if (month() < 10)
+  count = 0;
+  while (count < 12)
   {
-    my_tube3.show_digit(0, brightness, 0);
-    my_tube4.show_digit(month(), brightness, 0);
+    my_tube1.clear();
+    my_tube2.clear();
+    my_tube3.clear();
+    my_tube4.clear();
+    count++;
+    // Serial.println(sizeof(firstDigit));
+    if (firstArraySize > 0 && firstArraySize > count)
+    {
+      my_tube1.show_digit(firstDigit[count], 127, 1);
+    }
+    if (secondArraySize > 0 && secondArraySize > count)
+    {
+      my_tube2.show_digit(secondDigit[count], 127, 1);
+    }
+    if (thirdArraySize > 0 && thirdArraySize > count)
+    {
+      my_tube3.show_digit(thirdDigit[count], 127, 1);
+    }
+    if (fourthArraySize > 0 && fourthArraySize > count)
+    {
+      my_tube4.show_digit(fourthDigit[count], 127, 1);
+    }
+    if (firstArraySize > count || secondArraySize > count || thirdArraySize > count || fourthArraySize > count)
+    {
+      // delay(7200000); //wait 2 hours
+
+      delay(60000);
+    }
+  }
+  count = 0;
+}
+
+void antiDoteCustom()
+{
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
+  while (count < 10)
+  {
+    count++; // keep count between 0 to 9
+    // my_tube1.show_digit(count, 127, 1);
+    my_tube2.show_digit(0, 127, 1);
+    // my_tube3.show_digit(count, 127, 1);
+    // my_tube4.show_digit(count, 127, 1);
+    // my_tube1.set_led(127, 0, 127); // purple;
+    // my_tube2.set_led(127, 127, 0); // yellow;
+    // my_tube3.set_led(127, 0, 0);   // yellow;
+    // my_tube4.set_led(0, 0, 127);   // yellow;
+    delay(1800000);
+  }
+  count = 0;
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
+  while (count < 10)
+  {
+    count++; // keep count between 0 to 9
+    // my_tube1.show_digit(count, 127, 1);
+    my_tube2.show_digit(9, 127, 1);
+    // my_tube3.show_digit(count, 127, 1);
+    // my_tube4.show_digit(count, 127, 1);
+    // my_tube1.set_led(127, 0, 127); // purple;
+    // my_tube2.set_led(127, 127, 0); // yellow;
+    // my_tube3.set_led(127, 0, 0);   // yellow;
+    // my_tube4.set_led(0, 0, 127);   // yellow;
+    delay(1800000);
+  }
+  count = 0;
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
+}
+
+void updateWeather()
+{
+  const uint16_t port = 80;
+  const char *host = "www.mapme.ga"; // ip or dns
+
+  // Use WiFiClient class to create TCP connections
+  // WiFiClient client;
+
+  if (client.connect(host, port))
+  {
+    // Send a HTTP request
+    client.println(F("GET /air/generatejson_latest_oled.php HTTP/1.0"));
+    client.println(F("Host: www.mapme.ga"));
+    client.println(F("Connection: close"));
+    if (client.println() == 0)
+    {
+      Serial.println(F("Failed to send request"));
+      return;
+    }
+
+    // Check HTTP status
+    char status[32] = {0};
+    client.readBytesUntil('\r', status, sizeof(status));
+    if (strcmp(status, "HTTP/1.1 200 OK") != 0)
+    {
+      Serial.print(F("Unexpected response: "));
+      Serial.println(status);
+      return;
+    }
+
+    // Skip HTTP headers
+    char endOfHeaders[] = "\r\n\r\n";
+    if (!client.find(endOfHeaders))
+    {
+      Serial.println(F("Invalid response"));
+      return;
+    }
+    //Serial.println(client);
+    // Allocate the JSON document
+    // Use arduinojson.org/v6/assistant to compute the capacity.
+    const size_t capacity = JSON_OBJECT_SIZE(14) + 190;
+    DynamicJsonDocument doc(capacity);
+
+    // Parse JSON object
+    DeserializationError error = deserializeJson(doc, client);
+    if (error)
+    {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.c_str());
+      return;
+    }
+    else
+    {
+
+      //deserializeJson(doc, json);
+
+      // const char *id = doc["id"];             // "60517"
+      // const char *datetime = doc["datetime"]; // "1553085991"
+      // const char *AQ = doc["AQ"];             // "0.00"
+      // const int PM25 = doc["PM25"];           // "4.30"
+      // const int PM10 = doc["PM10"];           // "6.90"
+      int temperature = doc["temperature"]; // "11.30"
+      // const char *pressure = doc["pressure"]; // "999.86"
+      // const char *humidity = doc["humidity"]; // "36.38"
+      // const char *location = doc["location"]; // ""
+      // const char *Light = doc["Light"];       // "159"
+      // Extract values
+      // Serial.println(F("Response: "));
+      // Serial.println(doc["temperature"].as<float>(), 2);
+      // Serial.println(doc["datetime"].as<long>());
+
+      // Disconnect
+      client.stop();
+      my_tube1.clear();
+      my_tube2.clear();
+      if (temperature <= 0)
+      {
+        my_tube3.set_led(0, 0, 254);
+        my_tube4.set_led(0, 0, 254);
+      }
+      else if (temperature > 0 && temperature <= 10)
+      {
+        my_tube3.set_led(0, 254, 0);
+        my_tube4.set_led(0, 254, 0);
+      }
+      else if (temperature > 10 && temperature < 25)
+      {
+        my_tube3.set_led(254, 254, 0);
+        my_tube4.set_led(254, 254, 0);
+      }
+      else if (temperature > 25)
+      {
+        my_tube3.set_led(254, 0, 0);
+        my_tube4.set_led(254, 0, 0);
+      }
+      temperature = abs(temperature);
+      my_tube3.show_digit((temperature / 10), brightness, 0);
+      my_tube4.show_digit((temperature % 10), brightness, 0);
+      delay(2500);
+      my_tube3.set_led(0, 0, 0);
+      my_tube4.set_led(0, 0, 0);
+      my_tube3.clear();
+      my_tube4.clear();
+    }
   }
   else
   {
-    my_tube3.show_digit(1, brightness, 0);
-    my_tube4.show_digit(month() - 10, brightness, 0);
+    Serial.println("connection failed");
+    // Serial.println("wait 5 sec...");
+    // delay(5000);
+    // return;
   }
+}
+
+void displayDate()
+{
+
+  // Reset tubes
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
+
+  // Set month
+  my_tube3.set_dots(brightness, 0);
+
+  my_tube3.show_digit((month() / 10), brightness, 0);
+  my_tube4.show_digit((month() % 10), brightness, 0);
+
   my_tube4.set_dots(0, brightness);
 
   // Set day
   my_tube1.set_dots(brightness, 0);
-  if (day() > 29)
-  {
-    my_tube1.show_digit(3, brightness, 0);
-    my_tube2.show_digit(day() - 30, brightness, 0);
-  }
-  else if (day() > 19)
-  {
-    my_tube1.show_digit(2, brightness, 0);
-    my_tube2.show_digit(day() - 20, brightness, 0);
-  }
-  else if (day() > 9)
-  {
-    my_tube1.show_digit(1, brightness, 0);
-    my_tube2.show_digit(day() - 10, brightness, 0);
-  }
-  else
-  {
-    my_tube1.show_digit(0, brightness, 0);
-    my_tube2.show_digit(day(), brightness, 0);
-  }
+  my_tube1.show_digit((day() / 10), brightness, 0);
+  my_tube2.show_digit((day() % 10), brightness, 0);
+
   my_tube2.set_dots(0, brightness);
   delay(2500);
   // Reset dots
@@ -482,112 +671,91 @@ void displayDate()
 // Function displaying time
 void displayCurrentTime()
 {
-
-  if (hour() > 19 && hour() < 24)
-  {
-    digone = 2;
-  }
-  else if (hour() < 20 && hour() > 9)
-  {
-    digone = 1;
-  }
-  else
-  {
-    digone = 0;
-  }
-
-  if (hour() > 19 && hour() < 24)
-  {
-    digtwo = hour() - 20;
-  }
-  else if (hour() < 20 && hour() > 9)
-  {
-
-    digtwo = hour() - 10;
-  }
-  else if (hour() < 10 && hour() >= 0)
-  {
-
-    digtwo = hour();
-  }
-
-  else
-  {
-
-    digtwo = hour();
-  }
-
-  if (minute() < 10)
-  {
-
-    digthree = 0;
-    digfour = minute();
-  }
-  else if (minute() > 9 && minute() < 20)
-  {
-
-    digthree = 1;
-    digfour = minute() - 10;
-  }
-  else if (minute() > 19 && minute() < 30)
-  {
-
-    digthree = 2;
-    digfour = minute() - 20;
-  }
-  else if (minute() > 29 && minute() < 40)
-  {
-
-    digthree = 3;
-    digfour = minute() - 30;
-  }
-  else if (minute() > 39 && minute() < 50)
-  {
-
-    digthree = 4;
-    digfour = minute() - 40;
-  }
-  else
-  {
-
-    digthree = 5;
-    digfour = minute() - 50;
-  }
-
   if (useDynamicBright)
   {
-  // Change brightness according to time of day
+    // Change brightness according to time of day
 
-  if (ChozenZone.toUTC(now()) >= darkTime || ChozenZone.toUTC(now()) < brightTime)
-  {
-    darkTheme = true;
-    brightness = 30;
-    if (tickDot)
+    if (ChozenZone.toUTC(now()) >= darkTime || ChozenZone.toUTC(now()) < brightTime)
     {
-      secondTubeBright = 35;
+      darkTheme = true;
+      brightness = 30;
+      if (tickDot)
+      {
+        secondTubeBright = 35;
+      }
+      else
+      {
+        secondTubeBright = 30;
+      }
     }
     else
     {
-      secondTubeBright = 30;
+      darkTheme = false;
+      brightness = 100;
+      secondTubeBright = brightness;
     }
   }
   else
   {
-    darkTheme = false;
-    brightness = 100;
     secondTubeBright = brightness;
   }
+
+  digone = (hour() / 10);
+  digtwo = (hour() % 10);
+  digthree = (minute() / 10);
+  digfour = (minute() % 10);
+  if (minute() != checkminute)
+  {
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube1.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube1.show_digit(digone, brightness, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube2.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube2.show_digit(digtwo, secondTubeBright, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube3.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+    my_tube3.show_digit(digthree, brightness, 0);
+
+    while (count < 10)
+    {
+      count++; // keep count between 0 to 9
+      my_tube4.show_digit(count, brightness, 0);
+      delay(slotdelay);
+    }
+    count = 0;
+
+    my_tube4.show_digit(digfour, brightness, 0);
+    checkminute = minute();
   }
   else
   {
-    secondTubeBright = brightness;
+    my_tube1.show_digit(digone, brightness, 0);
+    my_tube2.show_digit(digtwo, secondTubeBright, 0);
+    my_tube3.show_digit(digthree, brightness, 0);
+    my_tube4.show_digit(digfour, brightness, 0);
   }
-  my_tube1.show_digit(digone, brightness, 0);
-  my_tube2.show_digit(digtwo, secondTubeBright, 0);
+
   // Tick dot for seconds
   if (tickDot)
   {
-    my_tube2.set_dots(0, 20);
+    my_tube2.set_dots(0, 35);
     tickDot = false;
   }
   else
@@ -595,31 +763,32 @@ void displayCurrentTime()
     my_tube2.set_dots(0, 0);
     tickDot = true;
   }
-  my_tube3.show_digit(digthree, brightness, 0);
-  my_tube4.show_digit(digfour, brightness, 0);
-  // Serial.println(darkTheme);
-  // TelnetStream.print("Dark theme active: ");
-  // TelnetStream.println(darkTheme);
-  // TelnetStream.println("Sunrise: " + CTBegin);
-  // TelnetStream.println("Sunset: " + CTEnds);
-  // TelnetStream.print("DynBright: ");
-  // TelnetStream.println(useDynamicBright);
-  // TelnetStream.print("Showdate: ");
-  // TelnetStream.println(showDate);
-  // TelnetStream.print("Showyear:  ");
-  // TelnetStream.println(showYear);
-  // TelnetStream.print("Latitude:  ");
-  // TelnetStream.println(latitude, 6);
-  // TelnetStream.print("Longitude:  ");
-  // TelnetStream.println(longitude, 6);
-  // TelnetStream.println("DYNBRIGHT=" + DYNBRIGHTSEL);
-  // TelnetStream.println("DISPDATE=" + DISPDATESEL);
-  // TelnetStream.println("DISPYEAR=" + DISPYEARSEL);
-  // TelnetStream.print("JsonErrorRead:  ");
-  // TelnetStream.println(jsonErrorRead);
-  // TelnetStream.print("JsonErrorWrite:  ");
-  // TelnetStream.println(jsonErrorWrite);
-  // TelnetStream.println("---------------------------------");
+
+#ifdef DEBUG
+  Serial.println(darkTheme);
+  Serial.print("Dark theme active: ");
+  Serial.println(darkTheme);
+  Serial.println("Sunrise: " + CTBegin);
+  Serial.println("Sunset: " + CTEnds);
+  Serial.print("DynBright: ");
+  Serial.println(useDynamicBright);
+  Serial.print("Showdate: ");
+  Serial.println(showDate);
+  Serial.print("Showyear:  ");
+  Serial.println(showYear);
+  Serial.print("Latitude:  ");
+  Serial.println(latitude, 6);
+  Serial.print("Longitude:  ");
+  Serial.println(longitude, 6);
+  Serial.println("DYNBRIGHT=" + DYNBRIGHTSEL);
+  Serial.println("DISPDATE=" + DISPDATESEL);
+  Serial.println("DISPYEAR=" + DISPYEARSEL);
+  Serial.print("JsonErrorRead:  ");
+  Serial.println(jsonErrorRead);
+  Serial.print("JsonErrorWrite:  ");
+  Serial.println(jsonErrorWrite);
+  Serial.println("---------------------------------");
+  #endif
 }
 
 // Function for regular NTP time sync
@@ -680,17 +849,17 @@ void syncTime()
 
 void saveConfiguration()
 {
-  TelnetStream.println("Start SaveConfig");
-  // Read persistent config from JSON on SPIFFS
-  if (SPIFFS.begin())
+  Serial.println("Start SaveConfig");
+  // Read persistent config from JSON on LittleFS
+  if (LittleFS.begin())
   {
-    TelnetStream.println("SPIFFS Start success");
+    Serial.println("LittleFS Start success");
 
-    SPIFFS.remove(CONFIG_FILE);
-    File jsonFile = SPIFFS.open(CONFIG_FILE, "w");
+    LittleFS.remove(CONFIG_FILE);
+    File jsonFile = LittleFS.open(CONFIG_FILE, "w");
     if (jsonFile)
     {
-      TelnetStream.println("Config file create succeeded");
+      Serial.println("Config file create succeeded");
       DynamicJsonDocument jsonBuffer(176);
 
       jsonBuffer["dynamicbright"] = useDynamicBright;
@@ -700,22 +869,22 @@ void saveConfiguration()
       jsonBuffer["location"]["longitude"] = longitude;
       if (serializeJson(jsonBuffer, jsonFile) == 0)
       {
-        TelnetStream.println("Serialization failed");
+        Serial.println("Serialization failed");
       }
       else
       {
-        TelnetStream.println("Serialization done.");
+        Serial.println("Serialization done.");
       }
       jsonFile.close();
     }
     else
     {
-      TelnetStream.println("Config file create failed.");
+      Serial.println("Config file create failed.");
     }
   }
   else
   {
-    TelnetStream.println("error starting SPIFFS");
+    Serial.println("error starting LittleFS");
   }
 }
 
@@ -745,6 +914,7 @@ void handleRoot()
   s += BRIGHTSLIDER;
   s += HOMEPAGEEND;
   server.send(200, "text/html", s);
+  Serial.println("Web interface called");
 }
 
 void configForm()
@@ -791,12 +961,12 @@ void configForm()
     showYear = false;
   }
 
-  TelnetStream.println("Brightslide value: " + server.arg("brightslide"));
+  Serial.println("Brightslide value: " + server.arg("brightslide"));
   if (!useDynamicBright)
   {
     int setBrightness = server.arg("brightslide").toInt();
     brightness = setBrightness;
-    TelnetStream.println("Brightness value: " + String(brightness));
+    Serial.println("Brightness value: " + String(brightness));
   }
 
   saveConfiguration();
@@ -852,11 +1022,10 @@ void cmd4()
   s += BRIGHTSLIDER;
   s += HOMEPAGEEND;
   server.send(200, "text/html", s);
-  // ESP.restart();
   antiDote();
-  // digitalWrite(D0,LOW);
-  //  digitalWrite(D1,LOW);
-  //   digitalWrite(D2,LOW);
+  Serial.println("Antidote Triggered....");
+  // antiDoteCustom();
+  // regenerate(firstDigit, secondDigit, thirdDigit, fourthDigit);
 }
 
 void setup()
@@ -894,7 +1063,7 @@ void setup()
   // ArduinoOTA.setPort(8266);
 
   // Hostname defaults to esp8266-[ChipID]
-  ArduinoOTA.setHostname("NixieClock");
+  ArduinoOTA.setHostname("NixieClockAP");
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
@@ -910,11 +1079,11 @@ void setup()
       type = "sketch";
     }
     else
-    { // U_SPIFFS
+    { // U_LittleFS
       type = "filesystem";
     }
 
-    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    // NOTE: if updating LittleFS this would be the place to unmount LittleFS using LittleFS.end()
     Serial.println("Start updating " + type);
   });
   ArduinoOTA.onEnd([]() {
@@ -964,18 +1133,19 @@ void setup()
       Serial.println("End Failed");
     }
   });
-  TelnetStream.begin();
+  // TelnetStream.begin();
   ArduinoOTA.begin();
 
-  // Read persistent config from JSON on SPIFFS
-  if (SPIFFS.begin())
+  // Read persistent config from JSON on LittleFS
+  if (LittleFS.begin())
   {
-    Serial.println("mounted file system");
+    Serial.println("Mounted file system");
 
     // parse json config file
     File jsonFile = GetFile(CONFIG_FILE);
     if (jsonFile)
     {
+      Serial.println("JSON file found");
       // Allocate a buffer to store contents of the file.
       size_t size = jsonFile.size();
       std::unique_ptr<char[]> jsonBuf(new char[size]);
@@ -1006,11 +1176,12 @@ void setup()
         LAT = String(latitude, 6);
         LONG = String(longitude, 6);
         // strcpy(cloudmqtt_pass, json["cloudmqtt_pass"]);
+        Serial.println("JSON config load success");
       }
       else
       {
         jsonErrorRead = true;
-        TelnetStream.println("failed to load json config");
+        Serial.println("Failed to load json config");
       }
       jsonFile.close();
     }
@@ -1098,7 +1269,7 @@ void setup()
   server.on("/configForm", configForm);
   server.on("/cmd4", cmd4);
   server.begin();
-  TelnetStream.println("HTTP server started");
+  Serial.println("HTTP server started");
 }
 
 void loop()
@@ -1138,10 +1309,14 @@ void loop()
     getSunrise();
   }
 
-  // Configure tube LED colours here
-  // my_tube1.set_led(0, 0, 0); // purple;
-  // my_tube2.set_led(0, 0, 0); // yellow;
-  // my_tube3.set_led(0, 0, 0); // red
-  // my_tube4.set_led(0, 0, 0); // blue
+  if (millis() >= time_6 + INTERVAL6) // Display Temp.
+  {
+    time_6 += INTERVAL6;
+    if (showTemp)
+    {
+      updateWeather();
+    }
+  }
+
   server.handleClient();
 }
