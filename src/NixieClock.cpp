@@ -38,11 +38,6 @@ String LONG = "";
 int checkminute = 0;
 int slotdelay = 30;
 
-// Regeneration digits
-int firstDigit[] = {};
-int secondDigit[] = {0, 9, 8};
-int thirdDigit[] = {};
-int fourthDigit[] = {};
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}#opacity-slider{-webkit-appearance: none; height: 4px;}#opacity-slider::-webkit-slider-thumb{-webkit-appearance: none; background-color: #eee; height: 20px; width: 10px; opacity: .7; border-radius: 25px;}</style>";
@@ -181,46 +176,6 @@ void sendNTPpacket(IPAddress &address)
   udp.endPacket();
 }
 
-// Future feature, get location & Time zone from IP
-void getLoc()
-{
-  if (WL_CONNECTED)
-  {
-    HTTPClient http;
-
-    Serial.print("[HTTP] begin...\n");
-    if (http.begin(client, "http://ip-api.com/csv"))
-    { // HTTP
-
-      Serial.print("[HTTP] GET...\n");
-      // start connection and send HTTP header
-      int httpCode = http.GET();
-
-      // httpCode will be negative on error
-      if (httpCode > 0)
-      {
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-        // file found at server
-        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-        {
-          String payload = http.getString();
-          Serial.println(payload);
-        }
-      }
-      else
-      {
-        Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-      }
-    }
-    http.end();
-  }
-  else
-  {
-    Serial.println("Not Connected");
-  }
-}
 
 long processTwilight(String twilightTime, bool isPM) //Takes time from twilight API JSON and returns UTC epoch
 {
@@ -403,210 +358,6 @@ void antiDote()
   delay(delay1);
   my_tube1.clear();
   delay(750);
-}
-
-void regenerate(int firstDigit[], int secondDigit[], int thirdDigit[], int fourthDigit[])
-{
-  int firstArraySize = (sizeof(firstDigit) / sizeof(firstDigit[0]));
-  int secondArraySize = (sizeof(secondDigit) / sizeof(secondDigit[0]));
-  int thirdArraySize = (sizeof(thirdDigit) / sizeof(thirdDigit[0]));
-  int fourthArraySize = (sizeof(fourthDigit) / sizeof(fourthDigit[0]));
-  Serial.print(" FirstArray: ");
-  Serial.println(sizeof(firstDigit));
-  Serial.print(" SecondArray: ");
-  Serial.println(sizeof(secondDigit));
-
-  count = 0;
-  while (count < 12)
-  {
-    my_tube1.clear();
-    my_tube2.clear();
-    my_tube3.clear();
-    my_tube4.clear();
-    count++;
-    // Serial.println(sizeof(firstDigit));
-    if (firstArraySize > 0 && firstArraySize > count)
-    {
-      my_tube1.show_digit(firstDigit[count], 127, 1);
-    }
-    if (secondArraySize > 0 && secondArraySize > count)
-    {
-      my_tube2.show_digit(secondDigit[count], 127, 1);
-    }
-    if (thirdArraySize > 0 && thirdArraySize > count)
-    {
-      my_tube3.show_digit(thirdDigit[count], 127, 1);
-    }
-    if (fourthArraySize > 0 && fourthArraySize > count)
-    {
-      my_tube4.show_digit(fourthDigit[count], 127, 1);
-    }
-    if (firstArraySize > count || secondArraySize > count || thirdArraySize > count || fourthArraySize > count)
-    {
-      // delay(7200000); //wait 2 hours
-
-      delay(60000);
-    }
-  }
-  count = 0;
-}
-
-void antiDoteCustom()
-{
-  my_tube1.clear();
-  my_tube2.clear();
-  my_tube3.clear();
-  my_tube4.clear();
-  while (count < 10)
-  {
-    count++; // keep count between 0 to 9
-    // my_tube1.show_digit(count, 127, 1);
-    my_tube2.show_digit(0, 127, 1);
-    // my_tube3.show_digit(count, 127, 1);
-    // my_tube4.show_digit(count, 127, 1);
-    // my_tube1.set_led(127, 0, 127); // purple;
-    // my_tube2.set_led(127, 127, 0); // yellow;
-    // my_tube3.set_led(127, 0, 0);   // yellow;
-    // my_tube4.set_led(0, 0, 127);   // yellow;
-    delay(1800000);
-  }
-  count = 0;
-  my_tube1.clear();
-  my_tube2.clear();
-  my_tube3.clear();
-  my_tube4.clear();
-  while (count < 10)
-  {
-    count++; // keep count between 0 to 9
-    // my_tube1.show_digit(count, 127, 1);
-    my_tube2.show_digit(9, 127, 1);
-    // my_tube3.show_digit(count, 127, 1);
-    // my_tube4.show_digit(count, 127, 1);
-    // my_tube1.set_led(127, 0, 127); // purple;
-    // my_tube2.set_led(127, 127, 0); // yellow;
-    // my_tube3.set_led(127, 0, 0);   // yellow;
-    // my_tube4.set_led(0, 0, 127);   // yellow;
-    delay(1800000);
-  }
-  count = 0;
-  my_tube1.clear();
-  my_tube2.clear();
-  my_tube3.clear();
-  my_tube4.clear();
-}
-
-void updateWeather()
-{
-  const uint16_t port = 80;
-  const char *host = "www.mapme.ga"; // ip or dns
-
-  // Use WiFiClient class to create TCP connections
-  // WiFiClient client;
-
-  if (client.connect(host, port))
-  {
-    // Send a HTTP request
-    client.println(F("GET /air/generatejson_latest_oled.php HTTP/1.0"));
-    client.println(F("Host: www.mapme.ga"));
-    client.println(F("Connection: close"));
-    if (client.println() == 0)
-    {
-      Serial.println(F("Failed to send request"));
-      return;
-    }
-
-    // Check HTTP status
-    char status[32] = {0};
-    client.readBytesUntil('\r', status, sizeof(status));
-    if (strcmp(status, "HTTP/1.1 200 OK") != 0)
-    {
-      Serial.print(F("Unexpected response: "));
-      Serial.println(status);
-      return;
-    }
-
-    // Skip HTTP headers
-    char endOfHeaders[] = "\r\n\r\n";
-    if (!client.find(endOfHeaders))
-    {
-      Serial.println(F("Invalid response"));
-      return;
-    }
-    //Serial.println(client);
-    // Allocate the JSON document
-    // Use arduinojson.org/v6/assistant to compute the capacity.
-    const size_t capacity = JSON_OBJECT_SIZE(14) + 190;
-    DynamicJsonDocument doc(capacity);
-
-    // Parse JSON object
-    DeserializationError error = deserializeJson(doc, client);
-    if (error)
-    {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.c_str());
-      return;
-    }
-    else
-    {
-
-      //deserializeJson(doc, json);
-
-      // const char *id = doc["id"];             // "60517"
-      // const char *datetime = doc["datetime"]; // "1553085991"
-      // const char *AQ = doc["AQ"];             // "0.00"
-      // const int PM25 = doc["PM25"];           // "4.30"
-      // const int PM10 = doc["PM10"];           // "6.90"
-      int temperature = doc["temperature"]; // "11.30"
-      // const char *pressure = doc["pressure"]; // "999.86"
-      // const char *humidity = doc["humidity"]; // "36.38"
-      // const char *location = doc["location"]; // ""
-      // const char *Light = doc["Light"];       // "159"
-      // Extract values
-      // Serial.println(F("Response: "));
-      // Serial.println(doc["temperature"].as<float>(), 2);
-      // Serial.println(doc["datetime"].as<long>());
-
-      // Disconnect
-      client.stop();
-      my_tube1.clear();
-      my_tube2.clear();
-      if (temperature <= 0)
-      {
-        my_tube3.set_led(0, 0, 254);
-        my_tube4.set_led(0, 0, 254);
-      }
-      else if (temperature > 0 && temperature <= 10)
-      {
-        my_tube3.set_led(0, 254, 0);
-        my_tube4.set_led(0, 254, 0);
-      }
-      else if (temperature > 10 && temperature < 25)
-      {
-        my_tube3.set_led(254, 254, 0);
-        my_tube4.set_led(254, 254, 0);
-      }
-      else if (temperature > 25)
-      {
-        my_tube3.set_led(254, 0, 0);
-        my_tube4.set_led(254, 0, 0);
-      }
-      temperature = abs(temperature);
-      my_tube3.show_digit((temperature / 10), brightness, 0);
-      my_tube4.show_digit((temperature % 10), brightness, 0);
-      delay(2500);
-      my_tube3.set_led(0, 0, 0);
-      my_tube4.set_led(0, 0, 0);
-      my_tube3.clear();
-      my_tube4.clear();
-    }
-  }
-  else
-  {
-    Serial.println("connection failed");
-    // Serial.println("wait 5 sec...");
-    // delay(5000);
-    // return;
-  }
 }
 
 void displayDate()
@@ -1024,8 +775,6 @@ void cmd4()
   server.send(200, "text/html", s);
   antiDote();
   Serial.println("Antidote Triggered....");
-  // antiDoteCustom();
-  // regenerate(firstDigit, secondDigit, thirdDigit, fourthDigit);
 }
 
 void setup()
@@ -1307,15 +1056,6 @@ void loop()
   {
     time_5 += INTERVAL5;
     getSunrise();
-  }
-
-  if (millis() >= time_6 + INTERVAL6) // Display Temp.
-  {
-    time_6 += INTERVAL6;
-    if (showTemp)
-    {
-      updateWeather();
-    }
   }
 
   server.handleClient();
