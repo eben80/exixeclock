@@ -1063,7 +1063,7 @@ void setup()
   // ArduinoOTA.setPort(8266);
 
   // Hostname defaults to esp8266-[ChipID]
-  ArduinoOTA.setHostname("NixieClockFS");
+  ArduinoOTA.setHostname("NixieClockAP");
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
