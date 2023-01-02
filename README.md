@@ -34,3 +34,8 @@ Using the [Sunrise Sunset API](https://sunrise-sunset.org/api)
 Schematic:
 
 ![Exixeclock Schematic](https://github.com/eben80/exixeclock/blob/master/circuit/Schematic_ExixeClock.jpg)
+
+
+![Tubes from Ukraine](https://github.com/eben80/exixeclock/blob/master/circuit/IMG_20191231_193828.jpg)
+
+![Assembly](https://github.com/eben80/exixeclock/blob/master/circuit/IMG_20200328_155927.jpg)
