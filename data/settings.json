@@ -2,6 +2,7 @@
   "dynamicbright": true,
   "showdate": false,
   "showyear": false,
+  "brightlevel": 127,
   "location": {
     "latitude": 49.052243,
     "longitude": 21.281473
