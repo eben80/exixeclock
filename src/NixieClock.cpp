@@ -35,6 +35,7 @@ String DISPDATESEL = "";
 String DISPYEARSEL = "";
 String LAT = "";
 String LONG = "";
+String BRIGHTLEVEL = "";
 int checkminute = 0;
 int slotdelay = 30;
 
@@ -61,8 +62,8 @@ const String DISPDATESTART = "Display Date: <label class=\"switch\"> <input id=\
 const String DISPDATEEND = "> <span class=\"slider round\"></span></label><br/>";
 const String DISPYEARSTART = " Display Year: <label class=\"switch\"> <input id=\"cmd3\" type=\"checkbox\" name=\"dispyear\" ";
 const String DISPYEAREND = "> <span class=\"slider round\"></span></label><br/>";
-const String BRIGHTSLIDER = "<input type=\"range\" id=\"bright-slider\" name=\"brightslide\" min=\"0\" max=\"127\" step=\"1\" value=\"\">";
-const String HOMEPAGEEND = "<button id=\"button2\"> Save </button></form><br/> <form id=\"cmd4Form\" action=\"/cmd4\" method=\"get\"><button id=\"cmd4\" class=\"button3\">Antidote Sequence</button><br/> </form> </div></body></html>";
+const String BRIGHTSLIDER = "<input type=\"range\" id=\"bright-slider\" name=\"brightslide\" min=\"0\" max=\"127\" step=\"1\" value=\"";
+const String HOMEPAGEEND = "\"><button id=\"button2\"> Save </button></form><br/> <form id=\"cmd4Form\" action=\"/cmd4\" method=\"get\"><button id=\"cmd4\" class=\"button3\">Antidote Sequence</button><br/> </form> </div></body></html>";
 
 // Section for configuring your time zones
 // Central European Time (Frankfurt, Paris) - Configure yours here.
@@ -119,6 +120,7 @@ unsigned char digthree;
 unsigned char digfour;
 bool tickDot = true;
 int brightness = 90;
+int brightLevel = 90;
 int secondTubeBright = 90;
 float latitude = 49.052243;  // Configure your latitude here
 float longitude = 21.281473; // Configure your longitude here
@@ -860,11 +862,12 @@ void saveConfiguration()
     if (jsonFile)
     {
       Serial.println("Config file create succeeded");
-      DynamicJsonDocument jsonBuffer(176);
+      DynamicJsonDocument jsonBuffer(256);
 
       jsonBuffer["dynamicbright"] = useDynamicBright;
       jsonBuffer["showdate"] = showDate;
       jsonBuffer["showyear"] = showYear;
+      jsonBuffer["brightlevel"] = brightLevel;
       jsonBuffer["location"]["latitude"] = latitude;
       jsonBuffer["location"]["longitude"] = longitude;
       if (serializeJson(jsonBuffer, jsonFile) == 0)
@@ -912,6 +915,7 @@ void handleRoot()
   s += DISPYEARSEL;
   s += DISPYEAREND;
   s += BRIGHTSLIDER;
+  s += BRIGHTLEVEL;
   s += HOMEPAGEEND;
   server.send(200, "text/html", s);
   Serial.println("Web interface called");
@@ -924,6 +928,8 @@ void configForm()
   latitude = LAT.toFloat();
   LONG = server.arg("longitude");
   longitude = LONG.toFloat();
+  BRIGHTLEVEL = server.arg("brightslide");
+  brightLevel = BRIGHTLEVEL.toInt();
 
   if (server.arg("dynbright") == "on")
   {
@@ -992,6 +998,7 @@ void configForm()
   s += DISPYEARSEL;
   s += DISPYEAREND;
   s += BRIGHTSLIDER;
+  s += BRIGHTLEVEL;
   s += HOMEPAGEEND;
   server.send(200, "text/html", s);
 }
@@ -1020,6 +1027,7 @@ void cmd4()
   s += DISPYEARSEL;
   s += DISPYEAREND;
   s += BRIGHTSLIDER;
+  s += BRIGHTLEVEL;
   s += HOMEPAGEEND;
   server.send(200, "text/html", s);
   antiDote();
@@ -1151,7 +1159,7 @@ void setup()
       std::unique_ptr<char[]> jsonBuf(new char[size]);
       jsonFile.readBytes(jsonBuf.get(), size);
 
-      DynamicJsonDocument jsonBuffer(176);
+      DynamicJsonDocument jsonBuffer(256);
       auto error = deserializeJson(jsonBuffer, jsonBuf.get());
       // JsonObject& json = jsonBuffer.parseObject(jsonBuf.get());
       if (!error)
@@ -1159,6 +1167,7 @@ void setup()
         useDynamicBright = jsonBuffer["dynamicbright"];
         showDate = jsonBuffer["showdate"];
         showYear = jsonBuffer["showyear"];
+        brightLevel = jsonBuffer["brightlevel"];
         latitude = jsonBuffer["location"]["latitude"].as<float>();
         longitude = jsonBuffer["location"]["longitude"].as<float>();
         if (useDynamicBright)
@@ -1175,6 +1184,7 @@ void setup()
         }
         LAT = String(latitude, 6);
         LONG = String(longitude, 6);
+        BRIGHTLEVEL = String(brightLevel);
         // strcpy(cloudmqtt_pass, json["cloudmqtt_pass"]);
         Serial.println("JSON config load success");
       }
