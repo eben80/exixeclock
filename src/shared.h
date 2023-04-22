@@ -16,3 +16,9 @@ extern exixe my_tube4;
 extern WiFiClient client;
 
 extern String twilightTime;
+
+// Regeneration digits
+extern int firstDigit[];
+extern int secondDigit[];
+extern int thirdDigit[];
+extern int fourthDigit[];

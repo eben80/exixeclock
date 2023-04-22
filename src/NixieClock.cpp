@@ -42,11 +42,11 @@ String LONG = "";
 int checkminute = 0;
 int slotdelay = 30;
 
-// Regeneration digits
-int firstDigit[] = {};
-int secondDigit[] = {0, 9, 8};
-int thirdDigit[] = {};
-int fourthDigit[] = {};
+// // Regeneration digits
+// int firstDigit[] = {};
+// int secondDigit[] = {0, 9, 8};
+// int thirdDigit[] = {};
+// int fourthDigit[] = {};
 
 const String HTTP1_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>Nixie Clock Configuration</title> ";
 const String HTTP1_STYLE = "<style>.c{text-align: center;}div,input{padding: 5px; font-size: 1em;}input{width: 90%;}body{text-align: center; font-family: verdana;}button{border: 0; border-radius: 0.6rem; background-color: #1fb3ec; color: #fdd; line-height: 2.4rem; font-size: 1.2rem; width: 100%;}.q{float: right; width: 64px; text-align: right;}.button2{background-color: #008CBA;}.button3{background-color: #f44336;}.button4{background-color: #e7e7e7; color: black;}.button5{background-color: #555555;}.button6{background-color: #4CAF50;}.switch{position: relative; display: inline-block; width: 60px; height: 34px;}.switch input{opacity: 0; width: 0; height: 0;}.slider{position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s;}.slider:before{position: absolute; content: \"\"; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; -webkit-transition: .4s; transition: .4s;}input:checked + .slider{background-color: #2196F3;}input:focus + .slider{box-shadow: 0 0 1px #2196F3;}input:checked + .slider:before{-webkit-transform: translateX(26px); -ms-transform: translateX(26px); transform: translateX(26px);}/* Rounded sliders */.slider.round{border-radius: 34px;}.slider.round:before{border-radius: 50%;}#opacity-slider{-webkit-appearance: none; height: 4px;}#opacity-slider::-webkit-slider-thumb{-webkit-appearance: none; background-color: #eee; height: 20px; width: 10px; opacity: .7; border-radius: 25px;}</style>";
@@ -292,51 +292,51 @@ void getSunrise() // Get sunrise/sunset from location
 }
 
 
-void regenerate(int firstDigit[], int secondDigit[], int thirdDigit[], int fourthDigit[])
-{
-  int firstArraySize = (sizeof(firstDigit) / sizeof(firstDigit[0]));
-  int secondArraySize = (sizeof(secondDigit) / sizeof(secondDigit[0]));
-  int thirdArraySize = (sizeof(thirdDigit) / sizeof(thirdDigit[0]));
-  int fourthArraySize = (sizeof(fourthDigit) / sizeof(fourthDigit[0]));
-  Serial.print(" FirstArray: ");
-  Serial.println(sizeof(firstDigit));
-  Serial.print(" SecondArray: ");
-  Serial.println(sizeof(secondDigit));
+// void regenerate(int firstDigit[], int secondDigit[], int thirdDigit[], int fourthDigit[])
+// {
+//   int firstArraySize = (sizeof(firstDigit) / sizeof(firstDigit[0]));
+//   int secondArraySize = (sizeof(secondDigit) / sizeof(secondDigit[0]));
+//   int thirdArraySize = (sizeof(thirdDigit) / sizeof(thirdDigit[0]));
+//   int fourthArraySize = (sizeof(fourthDigit) / sizeof(fourthDigit[0]));
+//   Serial.print(" FirstArray: ");
+//   Serial.println(sizeof(firstDigit));
+//   Serial.print(" SecondArray: ");
+//   Serial.println(sizeof(secondDigit));
 
-  count = 0;
-  while (count < 12)
-  {
-    my_tube1.clear();
-    my_tube2.clear();
-    my_tube3.clear();
-    my_tube4.clear();
-    count++;
-    // Serial.println(sizeof(firstDigit));
-    if (firstArraySize > 0 && firstArraySize > count)
-    {
-      my_tube1.show_digit(firstDigit[count], 127, 1);
-    }
-    if (secondArraySize > 0 && secondArraySize > count)
-    {
-      my_tube2.show_digit(secondDigit[count], 127, 1);
-    }
-    if (thirdArraySize > 0 && thirdArraySize > count)
-    {
-      my_tube3.show_digit(thirdDigit[count], 127, 1);
-    }
-    if (fourthArraySize > 0 && fourthArraySize > count)
-    {
-      my_tube4.show_digit(fourthDigit[count], 127, 1);
-    }
-    if (firstArraySize > count || secondArraySize > count || thirdArraySize > count || fourthArraySize > count)
-    {
-      // delay(7200000); //wait 2 hours
+//   count = 0;
+//   while (count < 12)
+//   {
+//     my_tube1.clear();
+//     my_tube2.clear();
+//     my_tube3.clear();
+//     my_tube4.clear();
+//     count++;
+//     // Serial.println(sizeof(firstDigit));
+//     if (firstArraySize > 0 && firstArraySize > count)
+//     {
+//       my_tube1.show_digit(firstDigit[count], 127, 1);
+//     }
+//     if (secondArraySize > 0 && secondArraySize > count)
+//     {
+//       my_tube2.show_digit(secondDigit[count], 127, 1);
+//     }
+//     if (thirdArraySize > 0 && thirdArraySize > count)
+//     {
+//       my_tube3.show_digit(thirdDigit[count], 127, 1);
+//     }
+//     if (fourthArraySize > 0 && fourthArraySize > count)
+//     {
+//       my_tube4.show_digit(fourthDigit[count], 127, 1);
+//     }
+//     if (firstArraySize > count || secondArraySize > count || thirdArraySize > count || fourthArraySize > count)
+//     {
+//       // delay(7200000); //wait 2 hours
 
-      delay(60000);
-    }
-  }
-  count = 0;
-}
+//       delay(60000);
+//     }
+//   }
+//   count = 0;
+// }
 
 
 

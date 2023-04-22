@@ -19,3 +19,9 @@ exixe my_tube4 = exixe(cs4);
 WiFiClient client;
 
 String twilightTime;
+
+// Regeneration digits
+int firstDigit[] = {};
+int secondDigit[] = {0, 9, 8};
+int thirdDigit[] = {};
+int fourthDigit[] = {};
