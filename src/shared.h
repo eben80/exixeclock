@@ -1,4 +1,5 @@
 #include "exixe.h"
+#include "WiFiClient.h"
 
 extern unsigned char count;
 //Cable Select for Tubes
@@ -11,3 +12,7 @@ extern exixe my_tube1;
 extern exixe my_tube2;
 extern exixe my_tube3;
 extern exixe my_tube4;
+
+extern WiFiClient client;
+
+extern String twilightTime;
