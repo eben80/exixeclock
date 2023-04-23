@@ -30,6 +30,7 @@
 #include "antiDoteCustom.h"
 #include "shared.h"
 #include "processTwilight.h"
+#include "getSunrise.h"
 
 // #define DEBUG 
 
@@ -117,24 +118,14 @@ unsigned char digfour;
 bool tickDot = true;
 int brightness = 90;
 int secondTubeBright = 90;
-float latitude = 49.052243;  // Configure your latitude here
-float longitude = 21.281473; // Configure your longitude here
-String JsonStatus = "";
-String CTBegin = "";
-String CTEnds = "";
-long brightTime = 0;
-long darkTime = 0;
 bool darkTheme = false;
 
-bool useDynamicBright = true; // Use web-sourced twilight times or static times.
 bool showDate = true;
 bool showYear = false;
 bool showTemp = true;
 bool jsonErrorRead = false;
 bool jsonErrorWrite = false;
 
-String lightStart = "6:00:00"; // When to start normal brightness
-String darkStart = "18:00:00"; // When to start reduced brightness
 
 
 // file io
@@ -214,129 +205,6 @@ void getLoc()
   }
 }
 
-
-void getSunrise() // Get sunrise/sunset from location
-{
-  if (useDynamicBright)
-  {
-    if (WL_CONNECTED)
-    {
-      HTTPClient http;
-      http.useHTTP10(true);
-      Serial.print("Getting dusk and dawn values...\n");
-      Serial.print("[HTTP] begin...\n");
-
-      String urlBuf;
-      urlBuf += F("http://api.sunrise-sunset.org/json?lat=");
-      urlBuf += String(latitude, 6);
-      urlBuf += F("&lng=");
-      urlBuf += String(longitude, 6);
-      urlBuf += F("&date=today");
-
-      if (http.begin(client, urlBuf))
-      { // HTTP
-
-        Serial.print("[HTTP] GET " + urlBuf + "\n");
-        // start connection and send HTTP header
-        int httpCode = http.GET();
-
-        // httpCode will be negative on error
-        if (httpCode > 0)
-        {
-          // HTTP header has been send and Server response header has been handled
-          Serial.printf("[HTTP] GET... code: %d\n", httpCode);
-
-          // file found at server
-          if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
-          {
-
-            // Parse response
-            DynamicJsonDocument doc(2048);
-            deserializeJson(doc, http.getStream());
-            JsonStatus = doc["status"].as<String>();
-            if (JsonStatus == "OK")
-            {
-              CTBegin = doc["results"]["civil_twilight_begin"].as<String>();
-              CTEnds = doc["results"]["civil_twilight_end"].as<String>();
-              Serial.println("Twilight begins: " + CTBegin);
-              Serial.println("Twilight ends: " + CTEnds);
-
-              brightTime = processTwilight(CTBegin, false);
-              darkTime = processTwilight(CTEnds, true);
-            }
-          }
-        }
-        else
-        {
-          Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
-          Serial.println("HTTP Error Using static brightness times.");
-          brightTime = processTwilight(lightStart, false);
-          darkTime = processTwilight(darkStart, true);
-        }
-      }
-      http.end();
-    }
-    else
-    {
-      Serial.println("Not Connected Using static brightness times.");
-      brightTime = processTwilight(lightStart, false);
-      darkTime = processTwilight(darkStart, true);
-    }
-  }
-  else
-  {
-    Serial.println("Using static brightness times.");
-    brightTime = processTwilight(lightStart, false);
-    darkTime = processTwilight(darkStart, true);
-  }
-}
-
-
-// void regenerate(int firstDigit[], int secondDigit[], int thirdDigit[], int fourthDigit[])
-// {
-//   int firstArraySize = (sizeof(firstDigit) / sizeof(firstDigit[0]));
-//   int secondArraySize = (sizeof(secondDigit) / sizeof(secondDigit[0]));
-//   int thirdArraySize = (sizeof(thirdDigit) / sizeof(thirdDigit[0]));
-//   int fourthArraySize = (sizeof(fourthDigit) / sizeof(fourthDigit[0]));
-//   Serial.print(" FirstArray: ");
-//   Serial.println(sizeof(firstDigit));
-//   Serial.print(" SecondArray: ");
-//   Serial.println(sizeof(secondDigit));
-
-//   count = 0;
-//   while (count < 12)
-//   {
-//     my_tube1.clear();
-//     my_tube2.clear();
-//     my_tube3.clear();
-//     my_tube4.clear();
-//     count++;
-//     // Serial.println(sizeof(firstDigit));
-//     if (firstArraySize > 0 && firstArraySize > count)
-//     {
-//       my_tube1.show_digit(firstDigit[count], 127, 1);
-//     }
-//     if (secondArraySize > 0 && secondArraySize > count)
-//     {
-//       my_tube2.show_digit(secondDigit[count], 127, 1);
-//     }
-//     if (thirdArraySize > 0 && thirdArraySize > count)
-//     {
-//       my_tube3.show_digit(thirdDigit[count], 127, 1);
-//     }
-//     if (fourthArraySize > 0 && fourthArraySize > count)
-//     {
-//       my_tube4.show_digit(fourthDigit[count], 127, 1);
-//     }
-//     if (firstArraySize > count || secondArraySize > count || thirdArraySize > count || fourthArraySize > count)
-//     {
-//       // delay(7200000); //wait 2 hours
-
-//       delay(60000);
-//     }
-//   }
-//   count = 0;
-// }
 
 
 

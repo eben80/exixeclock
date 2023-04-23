@@ -25,3 +25,14 @@ int firstDigit[] = {};
 int secondDigit[] = {0, 9, 8};
 int thirdDigit[] = {};
 int fourthDigit[] = {};
+
+bool useDynamicBright = true; // Use web-sourced twilight times or static times.
+float latitude = 49.052243;  // Configure your latitude here
+float longitude = 21.281473; // Configure your longitude here
+String JsonStatus = "";
+String CTBegin = "";
+String CTEnds = "";
+long brightTime = 0;
+long darkTime = 0;
+String lightStart = "6:00:00"; // When to start normal brightness
+String darkStart = "18:00:00"; // When to start reduced brightness
