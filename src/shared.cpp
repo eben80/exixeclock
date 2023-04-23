@@ -36,3 +36,4 @@ long brightTime = 0;
 long darkTime = 0;
 String lightStart = "6:00:00"; // When to start normal brightness
 String darkStart = "18:00:00"; // When to start reduced brightness
+int brightness = 90;

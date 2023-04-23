@@ -33,3 +33,4 @@ extern long brightTime;
 extern long darkTime;
 extern String lightStart; // When to start normal brightness
 extern String darkStart; // When to start reduced brightness;
+extern int brightness;
