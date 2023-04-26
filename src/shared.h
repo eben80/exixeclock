@@ -2,6 +2,9 @@
 #include "WiFiClient.h"
 #include <WiFiUdp.h>
 #include <Timezone.h>
+#include <ESP8266WebServer.h>
+
+#define CONFIG_FILE "/settings.json"
 
 extern unsigned char count;
 //Cable Select for Tubes
@@ -16,7 +19,7 @@ extern exixe my_tube3;
 extern exixe my_tube4;
 
 extern WiFiClient client;
-
+extern ESP8266WebServer server;
 extern String twilightTime;
 
 // Regeneration digits
@@ -36,6 +39,24 @@ extern long darkTime;
 extern String lightStart; // When to start normal brightness
 extern String darkStart; // When to start reduced brightness;
 extern int brightness;
+
+extern String DYNBRIGHTSEL;
+extern String DISPDATESEL;
+extern String DISPYEARSEL;
+extern String LAT;
+extern String LONG;
+extern bool showDate;
+extern bool showYear;
+
+extern unsigned char digone;
+extern unsigned char digtwo;
+extern unsigned char digthree;
+extern unsigned char digfour;
+extern bool tickDot;
+extern int secondTubeBright;
+extern bool darkTheme;
+extern int checkminute;
+extern int slotdelay;
 
 // A UDP instance to let us send and receive packets over UDP
 extern WiFiUDP udp;
