@@ -1,6 +1,7 @@
 #include "shared.h"
 #include "exixe.h"
 #include <Timezone.h>
+#include <ESP8266WebServer.h>
 
 unsigned char count;
 
@@ -19,7 +20,7 @@ exixe my_tube4 = exixe(cs4);
 // Wifi
 WiFiClient client;
 WiFiUDP udp;
-
+ESP8266WebServer server(80);
 String twilightTime;
 
 // Regeneration digits
@@ -39,6 +40,23 @@ long darkTime = 0;
 String lightStart = "6:00:00"; // When to start normal brightness
 String darkStart = "18:00:00"; // When to start reduced brightness
 int brightness = 90;
+String DYNBRIGHTSEL = "";
+String DISPDATESEL = "";
+String DISPYEARSEL = "";
+String LAT = "";
+String LONG = "";
+bool showDate = true;
+bool showYear = false;
+
+unsigned char digone;
+unsigned char digtwo;
+unsigned char digthree;
+unsigned char digfour;
+bool tickDot = true;
+int secondTubeBright = 90;
+bool darkTheme = false;
+int checkminute = 0;
+int slotdelay = 30;
 
 // Section for configuring your time zones
 // Central European Time (Frankfurt, Paris) - Configure yours here.
