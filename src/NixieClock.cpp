@@ -9,16 +9,24 @@
 */
 #include <Arduino.h>
 #include "shared.h"
+#include <FS.h>
 #include <LittleFS.h>
+#include "exixe.h"
 #include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#include <TimeLib.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
+#include <Timezone.h>
 //needed for library
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #include <ArduinoJson.h> //For sunrise/sunset api
+// #include "TelnetStream.h"
+#include <ESP8266WebServer.h>
 // #include "TelnetStream.h"
 #include "antiDote.h"
 #include "antiDoteCustom.h"
@@ -72,7 +80,12 @@ File GetFile(String fileName)
   return textFile;
 }
 
-
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  wifiAP();
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+}
 
 
 void setup()
@@ -95,6 +108,8 @@ void setup()
   //reset saved settings
   // wifiManager.resetSettings();
 
+  wifiManager.setAPCallback(configModeCallback);
+
   //set custom ip for portal
   //wifiManager.setAPStaticIPConfig(IPAddress(10,0,1,1), IPAddress(10,0,1,1), IPAddress(255,255,255,0));
 
@@ -106,9 +121,10 @@ void setup()
   //or use this for auto generated name ESP + ChipID
   //wifiManager.autoConnect();
 
+
   //if you get here you have connected to the WiFi
   Serial.println("connected");
-  // wifiConnected();
+  wifiConnected();
 
   Serial.println("Starting UDP");
   udp.begin(localPort);
