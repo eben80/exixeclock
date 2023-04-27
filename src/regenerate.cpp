@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "shared.h"
 #include "regenerate.h"
 

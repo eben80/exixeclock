@@ -1,4 +1,4 @@
-#include <Arduino.h>
+
 #include "antiDoteCustom.h"
 #include "shared.h"
 

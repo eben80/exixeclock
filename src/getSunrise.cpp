@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "shared.h"
 #include "getSunrise.h"
 #include <ESP8266HTTPClient.h>

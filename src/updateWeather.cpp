@@ -1,4 +1,4 @@
-#include <Arduino.h>
+
 #include "shared.h"
 #include "updateWeather.h"
 #include <ArduinoJson.h>

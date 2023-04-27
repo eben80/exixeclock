@@ -8,27 +8,26 @@
 
 */
 #include <Arduino.h>
-#include <FS.h>
+#include "shared.h"
+// #include <FS.h>
 #include <LittleFS.h>
-#include "exixe.h"
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#include <TimeLib.h>
-#include <ESP8266HTTPClient.h>
-#include <ESP8266mDNS.h>
+// #include "exixe.h"
+// #include <ESP8266WiFi.h>
+// #include <WiFiUdp.h>
+// #include <TimeLib.h>
+// #include <ESP8266HTTPClient.h>
+// #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
-#include <Timezone.h>
+// #include <Timezone.h>
 //needed for library
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
+// #include <DNSServer.h>
+// #include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #include <ArduinoJson.h> //For sunrise/sunset api
 // #include "TelnetStream.h"
-#include <ESP8266WebServer.h>
 #include "antiDote.h"
 #include "antiDoteCustom.h"
-#include "shared.h"
 #include "processTwilight.h"
 #include "getSunrise.h"
 #include "getLoc.h"

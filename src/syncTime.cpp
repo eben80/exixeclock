@@ -1,4 +1,4 @@
-#include <Arduino.h>
+
 #include "shared.h"
 #include "syncTime.h"
 #include <ESP8266WiFi.h>

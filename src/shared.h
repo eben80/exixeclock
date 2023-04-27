@@ -1,3 +1,5 @@
+#pragma once
+#include <Arduino.h>
 #include "exixe.h"
 #include "WiFiClient.h"
 #include <WiFiUdp.h>

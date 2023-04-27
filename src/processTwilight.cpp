@@ -1,6 +1,5 @@
-#include <Arduino.h>
-#include "processTwilight.h"
 #include "shared.h"
+#include "processTwilight.h"
 #include <TimeLib.h>
 
 long processTwilight(String twilightTime, bool isPM) //Takes time from twilight API JSON and returns UTC epoch
