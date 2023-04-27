@@ -9,19 +9,13 @@
 */
 #include <Arduino.h>
 #include "shared.h"
-// #include <FS.h>
 #include <LittleFS.h>
-// #include "exixe.h"
-// #include <ESP8266WiFi.h>
-// #include <WiFiUdp.h>
-// #include <TimeLib.h>
-// #include <ESP8266HTTPClient.h>
-// #include <ESP8266mDNS.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
-// #include <Timezone.h>
 //needed for library
-// #include <DNSServer.h>
-// #include <ESP8266WebServer.h>
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
 #include <ArduinoJson.h> //For sunrise/sunset api
@@ -37,6 +31,7 @@
 #include "http.h"
 #include "displayCurrentTime.h"
 #include "displayDate.h"
+#include "connectionStatus.h"
 
 // #define DEBUG 
 
@@ -86,6 +81,14 @@ void setup()
   Serial.println();
   Serial.println();
 
+    // ONLY CALL THIS ONCE
+  my_tube1.spi_init();
+
+  my_tube1.clear();
+  my_tube2.clear();
+  my_tube3.clear();
+  my_tube4.clear();
+
   //WiFiManager
   //Local intialization. Once its business is done, there is no need to keep it around
   WiFiManager wifiManager;
@@ -105,6 +108,7 @@ void setup()
 
   //if you get here you have connected to the WiFi
   Serial.println("connected");
+  // wifiConnected();
 
   Serial.println("Starting UDP");
   udp.begin(localPort);
@@ -243,13 +247,7 @@ void setup()
     }
   }
 
-  // ONLY CALL THIS ONCE
-  my_tube1.spi_init();
 
-  my_tube1.clear();
-  my_tube2.clear();
-  my_tube3.clear();
-  my_tube4.clear();
 
   // Future feature for geo-location based on IP
   // getLoc();
