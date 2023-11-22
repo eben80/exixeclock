@@ -21,6 +21,7 @@ const String LATSTART = "Latitude: <label class=\"text\"> <input type=\"text\" i
 const String LATEND = "\" pattern=\"-?\\d{1,3}\\.\\d+\"></label>";
 const String LONGSTART = "Longitude: <label class=\"text\"> <input type=\"text\" id=\"longitude\" name=\"longitude\" value=\"";
 const String LONGEND = "\" pattern=\"-?\\d{1,3}\\.\\d+\"></label><br/>";
+const String TZSELECT = "<label for=\"timezoneSelect\">Select a Timezone:</label> <select id=\"timezoneSelect\" class=\"selectpicker\" data-live-search=\"true\"></select></br>";
 const String DYNBRIGHTSTART = "Dynamic Brightness: <label class=\"switch\"> <input id=\"cmd1\" type=\"checkbox\" name=\"dynbright\" ";
 const String DYNBRIGHTEND = "> <span class=\"slider round\"></span></label><br/>";
 const String DISPDATESTART = "Display Date: <label class=\"switch\"> <input id=\"cmd2\" type=\"checkbox\" name=\"dispdate\" ";
@@ -28,7 +29,7 @@ const String DISPDATEEND = "> <span class=\"slider round\"></span></label><br/>"
 const String DISPYEARSTART = " Display Year: <label class=\"switch\"> <input id=\"cmd3\" type=\"checkbox\" name=\"dispyear\" ";
 const String DISPYEAREND = "> <span class=\"slider round\"></span></label><br/>";
 const String BRIGHTSLIDER = "<input type=\"range\" id=\"bright-slider\" name=\"brightslide\" min=\"0\" max=\"127\" step=\"1\" value=\"";
-const String HOMEPAGEEND = "\"><button id=\"button2\"> Save </button></form><br/> <form id=\"cmd4Form\" action=\"/cmd4\" method=\"get\"><button id=\"cmd4\" class=\"button3\">Antidote Sequence</button><br/> </form> </div></body></html>";
+const String HOMEPAGEEND = "\"><button id=\"button2\"> Save </button></form><br/> <form id=\"cmd4Form\" action=\"/cmd4\" method=\"get\"><button id=\"cmd4\" class=\"button3\">Antidote Sequence</button><br/> </form> </div><script src=\"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js\"></script><script src=\"https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.10/moment-timezone-with-data.js\"></script><script>var timezone=moment.tz.names(); for (var i=0; i < timezone.length; i++){$('select').append('<option value=\"' + timezone[i] + '\">' + timezone[i] + '</option>');}</script></body></html>";
 
 
 void handleRoot()
@@ -45,6 +46,7 @@ void handleRoot()
   s += LONGSTART;
   s += LONG;
   s += LONGEND;
+  s += TZSELECT;
   s += DYNBRIGHTSTART;
   s += DYNBRIGHTSEL;
   s += DYNBRIGHTEND;
