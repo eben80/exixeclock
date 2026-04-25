@@ -3,7 +3,7 @@ ESP8266-powered, WiFi enabled, automatic time syncing, OTA updatable 4 digit Nix
 
 Click below to view Youtube Video
 
-[![Youtube video](https://img.youtube.com/vi/zlQQ1anih0Y/0.jpg)](https://www.youtube.com/watch?v=zlQQ1anih0Y)
+[![Youtube video](https://img.youtube.com/vi/TgXrI-OZ0sM/0.jpg)](https://www.youtube.com/watch?v=TgXrI-OZ0sM)
 
 Has the following features:
 *   WifiManager autoconfiguration
@@ -34,3 +34,8 @@ Using the [Sunrise Sunset API](https://sunrise-sunset.org/api)
 Schematic:
 
 ![Exixeclock Schematic](https://github.com/eben80/exixeclock/blob/master/circuit/Schematic_ExixeClock.jpg)
+
+
+![Tubes from Ukraine](https://github.com/eben80/exixeclock/blob/master/circuit/IMG_20191231_193828.jpg)
+
+![Assembly](https://github.com/eben80/exixeclock/blob/master/circuit/IMG_20200328_155927.jpg)
