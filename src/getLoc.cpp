@@ -7,7 +7,7 @@
 // Future feature, get location & Time zone from IP
 void getLoc()
 {
-  if (WL_CONNECTED)
+  if (WiFi.status() == WL_CONNECTED)
   {
     HTTPClient http;
 

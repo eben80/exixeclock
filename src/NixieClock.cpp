@@ -92,7 +92,7 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println();
-  Serial.println();
+ 
 
     // ONLY CALL THIS ONCE
   my_tube1.spi_init();
@@ -168,7 +168,7 @@ void setup()
     my_tube4.clear();
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Updating: % u % % \r", (progress / (total / 100)));
+    Serial.printf("Updating: %u%%\r", (progress / (total / 100)));
     // Tube progress display
     my_tube1.clear();
     if (((progress / (total / 100)) / 100) > 0)
@@ -183,7 +183,7 @@ void setup()
     my_tube4.show_digit((progress / (total / 100)) % 10, 127, 1);
   });
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[ % u]: ", error);
+    Serial.printf("Error[ %u]: ", error);
     if (error == OTA_AUTH_ERROR)
     {
       Serial.println("Auth Failed");

@@ -5,6 +5,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "antiDote.h"
+#include "regenerate.h"
 
 #define CONFIG_FILE "/settings.json"
 
@@ -211,5 +212,15 @@ void cmd4()
   antiDote();
   Serial.println("Antidote Triggered....");
   // antiDoteCustom();
-  // regenerate(firstDigit, secondDigit, thirdDigit, fourthDigit);
+// int firstDigits[] = {1, 2, 3, 4, 5};
+// int secondDigits[] = {6, 7, 8}; 
+// int thirdDigits[] = {9, 0};
+// int fourthDigits[] = {1, 2, 3, 4, 5, 6, 7, 8}; 
+
+// int firstSize = sizeof(firstDigits) / sizeof(firstDigits[0]);
+// int secondSize = sizeof(secondDigits) / sizeof(secondDigits[0]);
+// int thirdSize = sizeof(thirdDigits) / sizeof(thirdDigits[0]);
+// int fourthSize = sizeof(fourthDigits) / sizeof(fourthDigits[0]);
+
+// regenerate(firstDigits, firstSize, secondDigits, secondSize, thirdDigits, thirdSize, fourthDigits, fourthSize);
 }

@@ -9,7 +9,7 @@ void getSunrise() // Get sunrise/sunset from location
 {
   if (useDynamicBright)
   {
-    if (WL_CONNECTED)
+    if (WiFi.status() == WL_CONNECTED)
     {
       HTTPClient http;
       http.useHTTP10(true);

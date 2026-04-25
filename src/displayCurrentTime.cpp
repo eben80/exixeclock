@@ -23,7 +23,8 @@ void displayCurrentTime()
     else
     {
       darkTheme = false;
-      brightness = 100;
+      // brightness = 100;
+      brightness = 127; // Max brightness
       secondTubeBright = brightness;
     }
   }
@@ -95,7 +96,11 @@ void displayCurrentTime()
     my_tube2.set_dots(0, 0);
     tickDot = true;
   }
-
+  //Ukrainian flag during time display
+    my_tube1.set_led(0, 22, 46); // blue;
+    my_tube2.set_led(0, 22, 46); // blue;
+    my_tube3.set_led(64, 55, 0);   // yellow;
+    my_tube4.set_led(64, 55, 0);   // yellow;
 #ifdef DEBUG
   Serial.println(darkTheme);
   Serial.print("Dark theme active: ");
